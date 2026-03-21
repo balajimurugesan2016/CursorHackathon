@@ -39,7 +39,8 @@ public class Plant {
 	@JoinTable(
 			name = "plant_supplier",
 			joinColumns = @JoinColumn(name = "plant_id"),
-			inverseJoinColumns = @JoinColumn(name = "supplier_id")
+			inverseJoinColumns = @JoinColumn(name = "supplier_id"),
+			uniqueConstraints = @UniqueConstraint(name = "uk_plant_supplier", columnNames = {"plant_id", "supplier_id"})
 	)
 	@Builder.Default
 	private Set<Supplier> suppliers = new HashSet<>();
@@ -48,7 +49,8 @@ public class Plant {
 	@JoinTable(
 			name = "plant_shipment",
 			joinColumns = @JoinColumn(name = "plant_id"),
-			inverseJoinColumns = @JoinColumn(name = "shipment_id")
+			inverseJoinColumns = @JoinColumn(name = "shipment_id"),
+			uniqueConstraints = @UniqueConstraint(name = "uk_plant_shipment", columnNames = {"plant_id", "shipment_id"})
 	)
 	@Builder.Default
 	@JsonIgnoreProperties({"plants", "suppliers"})

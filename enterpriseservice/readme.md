@@ -58,11 +58,13 @@ curl -s -X PUT http://localhost:8081/api/v1/plants/1 -H "Content-Type: applicati
 curl -s -o /dev/null -w "%{http_code}\n" -X DELETE http://localhost:8081/api/v1/plants/1
 ```
 
-**Links** (replace ids):
+**Links** (M:N — replace ids; `204` expected):
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-  http://localhost:8081/api/v1/links/plants/1/suppliers/1
+BASE=http://localhost:8081/api/v1/links
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/plants/1/suppliers/1"
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/suppliers/1/shipments/1"
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/plants/1/shipments/1"
 ```
 
 **Orchestration** (needs **mockServices** on 8080):

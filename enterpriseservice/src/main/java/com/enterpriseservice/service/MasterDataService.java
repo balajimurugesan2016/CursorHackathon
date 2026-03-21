@@ -38,6 +38,7 @@ public class MasterDataService {
 	@Transactional
 	public Plant createPlant(Plant plant) {
 		plant.setId(null);
+		stripIncomingAssociations(plant);
 		return plantRepo.save(plant);
 	}
 
@@ -87,6 +88,7 @@ public class MasterDataService {
 	@Transactional
 	public Supplier createSupplier(Supplier supplier) {
 		supplier.setId(null);
+		stripIncomingAssociations(supplier);
 		return supplierRepo.save(supplier);
 	}
 
@@ -133,6 +135,7 @@ public class MasterDataService {
 	@Transactional
 	public Shipment createShipment(Shipment shipment) {
 		shipment.setId(null);
+		stripIncomingAssociations(shipment);
 		return shipmentRepo.save(shipment);
 	}
 
@@ -223,5 +226,21 @@ public class MasterDataService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found"));
 		plant.getPlantShipments().remove(shipment);
 		shipment.getPlants().remove(plant);
+	}
+
+	/** Ignore client-supplied M:N collections on create (links use {@code /api/v1/links}). */
+	private static void stripIncomingAssociations(Plant plant) {
+		plant.getSuppliers().clear();
+		plant.getPlantShipments().clear();
+	}
+
+	private static void stripIncomingAssociations(Supplier supplier) {
+		supplier.getPlants().clear();
+		supplier.getShipments().clear();
+	}
+
+	private static void stripIncomingAssociations(Shipment shipment) {
+		shipment.getSuppliers().clear();
+		shipment.getPlants().clear();
 	}
 }

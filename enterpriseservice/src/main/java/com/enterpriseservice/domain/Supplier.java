@@ -40,7 +40,8 @@ public class Supplier {
 	@JoinTable(
 			name = "supplier_shipment",
 			joinColumns = @JoinColumn(name = "supplier_id"),
-			inverseJoinColumns = @JoinColumn(name = "shipment_id")
+			inverseJoinColumns = @JoinColumn(name = "shipment_id"),
+			uniqueConstraints = @UniqueConstraint(name = "uk_supplier_shipment", columnNames = {"supplier_id", "shipment_id"})
 	)
 	@Builder.Default
 	@JsonIgnoreProperties({"plants", "suppliers"})

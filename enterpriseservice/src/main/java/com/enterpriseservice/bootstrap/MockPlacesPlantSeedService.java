@@ -2,8 +2,8 @@ package com.enterpriseservice.bootstrap;
 
 import com.enterpriseservice.domain.Plant;
 import com.enterpriseservice.repository.PlantRepo;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -23,7 +23,7 @@ import java.util.List;
 public class MockPlacesPlantSeedService {
 
 	private final PlantRepo plantRepo;
-	private final ObjectMapper objectMapper;
+	private final JsonMapper jsonMapper;
 
 	@Value("classpath:mock_places.json")
 	private Resource mockPlacesResource;
@@ -36,7 +36,7 @@ public class MockPlacesPlantSeedService {
 		if (!mockPlacesResource.exists()) {
 			return;
 		}
-		List<MockPlaceJson> places = objectMapper.readValue(
+		List<MockPlaceJson> places = jsonMapper.readValue(
 				mockPlacesResource.getInputStream(),
 				new TypeReference<List<MockPlaceJson>>() {
 				});
