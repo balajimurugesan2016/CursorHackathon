@@ -1,0 +1,111 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --void: #030308;
+  --bg-deep: #0a0a12;
+  --surface: rgba(12, 14, 28, 0.85);
+  --surface-2: rgba(18, 22, 42, 0.65);
+  --border-dim: rgba(0, 255, 247, 0.12);
+  --border-glow: rgba(0, 255, 247, 0.45);
+  --text: #f0f4ff;
+  --muted: #8892b8;
+  --neon-cyan: #00fff0;
+  --neon-magenta: #ff2eea;
+  --neon-violet: #a855f7;
+  --neon-lime: #b8ff00;
+  --neon-pink: #ff006e;
+  --radius: 12px;
+  --font-display: "Orbitron", system-ui, sans-serif;
+  --font-ui: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-ui);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Deep black + subtle cyan grid + vignette */
+body {
+  position: relative;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(168, 85, 247, 0.15), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(0, 255, 240, 0.06), transparent 45%),
+    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(255, 46, 234, 0.07), transparent 40%),
+    linear-gradient(180deg, var(--void) 0%, var(--bg-deep) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 255, 247, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 247, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--neon-cyan);
+  text-decoration: none;
+  text-shadow: 0 0 12px rgba(0, 255, 240, 0.35);
+  transition: color 0.2s, text-shadow 0.2s;
+}
+a:hover {
+  color: var(--neon-magenta);
+  text-shadow: 0 0 16px rgba(255, 46, 234, 0.5);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: rgba(0, 255, 247, 0.08);
+  border: 1px solid rgba(0, 255, 247, 0.2);
+  color: var(--neon-cyan);
+}
