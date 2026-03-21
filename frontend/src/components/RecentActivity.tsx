@@ -1,27 +1,14 @@
-const ACTIVITY_ITEMS = [
-  {
-    color: 'var(--error)',
-    text: 'Shanghai Port - Status escalated to Critical',
-    time: '2 hours ago',
-  },
-  {
-    color: 'var(--warning)',
-    text: 'TiO2 Shortage - Alternate supplier identified',
-    time: '5 hours ago',
-  },
-  {
-    color: 'var(--success)',
-    text: 'Houston Power Outage - Resolved, ops normal',
-    time: '1 day ago',
-  },
-  {
-    color: 'var(--info)',
-    text: 'Rail Strike - Mitigation plan approved by ops',
-    time: '1 day ago',
-  },
-];
+interface ActivityItem {
+  color: string;
+  text: string;
+  time?: string;
+}
 
-export function RecentActivity() {
+interface RecentActivityProps {
+  items: ActivityItem[];
+}
+
+export function RecentActivity({ items }: Readonly<RecentActivityProps>) {
   return (
     <div
       style={{
@@ -42,18 +29,22 @@ export function RecentActivity() {
           color: 'var(--text-tertiary)',
         }}
       >
-        RECENT ACTIVITY
+        ARTICLE SIGNALS (SIMULATION)
       </span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {ACTIVITY_ITEMS.map((item, i) => (
+        {items.length === 0 && (
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text-secondary)' }}>
+            No articles in the current reasoning run.
+          </span>
+        )}
+        {items.map((item, i) => (
           <div
             key={i}
             style={{
               display: 'flex',
               gap: 12,
               padding: '12px 0',
-              borderBottom:
-                i < ACTIVITY_ITEMS.length - 1 ? '1px solid var(--border)' : 'none',
+              borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none',
             }}
           >
             <span
@@ -77,17 +68,19 @@ export function RecentActivity() {
               >
                 {item.text}
               </span>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: 'var(--text-muted)',
-                  marginTop: 2,
-                }}
-              >
-                {item.time}
-              </div>
+              {item.time && (
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: 'var(--text-muted)',
+                    marginTop: 2,
+                  }}
+                >
+                  {item.time}
+                </div>
+              )}
             </div>
           </div>
         ))}

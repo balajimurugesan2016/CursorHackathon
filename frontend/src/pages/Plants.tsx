@@ -1,24 +1,26 @@
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
 import { WorldMap } from '../components/WorldMap';
 
-const PLANTS = [
-  { name: 'Frankfurt', region: 'Europe', status: 'active', capacity: '12,500 MT/yr' },
-  { name: 'Shanghai', region: 'APAC', status: 'active', capacity: '18,200 MT/yr' },
-  { name: 'Houston', region: 'Americas', status: 'active', capacity: '15,800 MT/yr' },
-  { name: 'Mumbai', region: 'APAC', status: 'active', capacity: '9,400 MT/yr' },
-  { name: 'São Paulo', region: 'Americas', status: 'active', capacity: '11,200 MT/yr' },
-  { name: 'Singapore', region: 'APAC', status: 'active', capacity: '8,900 MT/yr' },
-  { name: 'Dubai', region: 'MEA', status: 'active', capacity: '7,600 MT/yr' },
-  { name: 'Rotterdam', region: 'Europe', status: 'active', capacity: '14,100 MT/yr' },
-  { name: 'Tokyo', region: 'APAC', status: 'maintenance', capacity: '6,200 MT/yr' },
-  { name: 'Mexico City', region: 'Americas', status: 'active', capacity: '5,800 MT/yr' },
-  { name: 'Cape Town', region: 'Africa', status: 'active', capacity: '4,500 MT/yr' },
-  { name: 'Sydney', region: 'APAC', status: 'active', capacity: '3,200 MT/yr' },
-];
+function formatCapacity(p: {
+  capacityPct?: number | null;
+  totalLines?: number | null;
+  linesActive?: number | null;
+}): string {
+  if (p.capacityPct != null) return `${p.capacityPct}%`;
+  if (p.totalLines != null) return `${p.linesActive ?? 0}/${p.totalLines} lines`;
+  return '—';
+}
 
 export function Plants() {
+  const { data: plants, loading, error } = useAsync(() => enterpriseApi.listPlants(), []);
+
+  const active = plants?.filter((p) => (p.status ?? '').toLowerCase() === 'active').length ?? 0;
+  const maintenance = (plants?.length ?? 0) - active;
+
   return (
     <Layout>
       <HeaderBar
@@ -36,6 +38,11 @@ export function Plants() {
           overflow: 'auto',
         }}
       >
+        {error && (
+          <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -43,10 +50,38 @@ export function Plants() {
             flexWrap: 'wrap',
           }}
         >
-          <KPICard label="TOTAL PLANTS" value="12" valueColor="primary" />
-          <KPICard label="ACTIVE" value="11" valueColor="success" />
-          <KPICard label="MAINTENANCE" value="1" valueColor="error" />
-          <KPICard label="TOTAL CAPACITY" value="117.6k MT/yr" valueColor="primary" />
+          <KPICard
+            label="TOTAL PLANTS (ENTERPRISE)"
+            value={loading ? '…' : plants?.length ?? 0}
+            valueColor="primary"
+            subtext="GET /api/v1/plants"
+            subtextColor="primary"
+          />
+          <KPICard
+            label="ACTIVE"
+            value={loading ? '…' : active}
+            valueColor="success"
+          />
+          <KPICard
+            label="OTHER STATUS"
+            value={loading ? '…' : maintenance}
+            valueColor="error"
+          />
+          <KPICard
+            label="AVG CAPACITY %"
+            value={
+              loading
+                ? '…'
+                : (() => {
+                    const withPct = plants?.filter((p) => p.capacityPct != null) ?? [];
+                    if (!withPct.length) return '—';
+                    const avg =
+                      withPct.reduce((s, p) => s + (p.capacityPct ?? 0), 0) / withPct.length;
+                    return `${avg.toFixed(1)}%`;
+                  })()
+            }
+            valueColor="primary"
+          />
         </div>
 
         <div
@@ -128,7 +163,7 @@ export function Plants() {
                         borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      REGION
+                      LOCATION
                     </th>
                     <th
                       style={{
@@ -161,70 +196,64 @@ export function Plants() {
                   </tr>
                 </thead>
                 <tbody>
-                  {PLANTS.map((plant) => (
-                    <tr
-                      key={plant.name}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      <td
+                  {(plants ?? []).map((plant) => {
+                    const st = (plant.status ?? 'active').toLowerCase();
+                    const isActive = st === 'active';
+                    return (
+                      <tr
+                        key={plant.id}
                         style={{
-                          padding: '12px 16px',
-                          color: 'var(--text-primary)',
-                          fontWeight: 600,
+                          borderBottom: '1px solid var(--border)',
                         }}
                       >
-                        {plant.name}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 11,
-                        }}
-                      >
-                        {plant.region}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                        }}
-                      >
-                        <span
+                        <td
                           style={{
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 10,
+                            padding: '12px 16px',
+                            color: 'var(--text-primary)',
                             fontWeight: 600,
-                            background:
-                              plant.status === 'active'
-                                ? 'var(--success-dim)'
-                                : 'var(--error-dim)',
-                            color:
-                              plant.status === 'active'
-                                ? 'var(--success)'
-                                : 'var(--error)',
                           }}
                         >
-                          {plant.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          textAlign: 'right',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 11,
-                        }}
-                      >
-                        {plant.capacity}
-                      </td>
-                    </tr>
-                  ))}
+                          {plant.plantName}
+                        </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                          }}
+                        >
+                          {plant.location ?? '—'}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: isActive ? 'var(--success-dim)' : 'var(--error-dim)',
+                              color: isActive ? 'var(--success)' : 'var(--error)',
+                            }}
+                          >
+                            {(plant.status ?? 'UNKNOWN').toUpperCase()}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            textAlign: 'right',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                          }}
+                        >
+                          {formatCapacity(plant)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

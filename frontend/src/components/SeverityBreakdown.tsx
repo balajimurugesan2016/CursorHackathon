@@ -1,10 +1,17 @@
-const SEVERITY_DATA = [
-  { label: 'Critical', color: 'var(--error)', count: 3, width: 100 },
-  { label: 'High', color: 'var(--warning)', count: 3, width: 66 },
-  { label: 'Medium', color: 'var(--success)', count: 1, width: 33 },
-];
+interface SeverityBreakdownProps {
+  critical: number;
+  high: number;
+  medium: number;
+}
 
-export function SeverityBreakdown() {
+export function SeverityBreakdown({ critical, high, medium }: Readonly<SeverityBreakdownProps>) {
+  const total = critical + high + medium || 1;
+  const items = [
+    { label: 'Critical', color: 'var(--error)', count: critical, width: (critical / total) * 100 },
+    { label: 'High', color: 'var(--warning)', count: high, width: (high / total) * 100 },
+    { label: 'Medium', color: 'var(--success)', count: medium, width: (medium / total) * 100 },
+  ];
+
   return (
     <div
       style={{
@@ -25,10 +32,10 @@ export function SeverityBreakdown() {
           color: 'var(--text-tertiary)',
         }}
       >
-        SEVERITY BREAKDOWN
+        RISK BUCKETS (PLANTS)
       </span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {SEVERITY_DATA.map((item) => (
+        {items.map((item) => (
           <div key={item.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div
               style={{

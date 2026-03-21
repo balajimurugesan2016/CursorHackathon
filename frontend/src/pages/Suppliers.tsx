@@ -1,23 +1,15 @@
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
 
-const SUPPLIERS = [
-  { name: 'Port Jebel Ali', type: 'PORT', region: 'UAE', status: 'active', orders: 156 },
-  { name: 'Port of Singapore', type: 'PORT', region: 'Singapore', status: 'active', orders: 234 },
-  { name: 'Port of Suez', type: 'PORT', region: 'Egypt', status: 'active', orders: 89 },
-  { name: 'Khalifa Port', type: 'PORT', region: 'UAE', status: 'active', orders: 112 },
-  { name: 'Port of Cape Town', type: 'PORT', region: 'South Africa', status: 'active', orders: 67 },
-  { name: 'Port of Cristobal', type: 'PORT', region: 'Panama', status: 'active', orders: 98 },
-  { name: 'Port of Khasab', type: 'PORT', region: 'Oman', status: 'active', orders: 45 },
-  { name: 'Khalifa Bin Salman Port', type: 'PORT', region: 'Bahrain', status: 'active', orders: 34 },
-  { name: 'Dubai City Hub', type: 'CITY', region: 'UAE', status: 'active', orders: 201 },
-  { name: 'Singapore City Hub', type: 'CITY', region: 'Singapore', status: 'active', orders: 278 },
-  { name: 'Frankfurt Logistics', type: 'CITY', region: 'Germany', status: 'active', orders: 189 },
-  { name: 'Houston Distribution', type: 'CITY', region: 'USA', status: 'active', orders: 145 },
-];
-
 export function Suppliers() {
+  const { data: suppliers, loading, error } = useAsync(() => enterpriseApi.listSuppliers(), []);
+
+  const ports = suppliers?.filter((s) => (s.location ?? '').toUpperCase().includes('PORT')).length ?? 0;
+  const hubs = (suppliers?.length ?? 0) - ports;
+
   return (
     <Layout>
       <HeaderBar
@@ -35,6 +27,11 @@ export function Suppliers() {
           overflow: 'auto',
         }}
       >
+        {error && (
+          <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -42,10 +39,30 @@ export function Suppliers() {
             flexWrap: 'wrap',
           }}
         >
-          <KPICard label="ACTIVE SUPPLIERS" value="847" valueColor="primary" />
-          <KPICard label="PORTS" value="312" valueColor="primary" />
-          <KPICard label="CITY HUBS" value="535" valueColor="primary" />
-          <KPICard label="PENDING ORDERS" value="1,648" valueColor="primary" />
+          <KPICard
+            label="TOTAL SUPPLIERS"
+            value={loading ? '…' : suppliers?.length ?? 0}
+            valueColor="primary"
+          />
+          <KPICard
+            label="NAME CONTAINS PORT"
+            value={loading ? '…' : ports}
+            valueColor="primary"
+          />
+          <KPICard
+            label="OTHER"
+            value={loading ? '…' : hubs}
+            valueColor="primary"
+          />
+          <KPICard
+            label="CONTRACT STATUS (FILLED)"
+            value={
+              loading
+                ? '…'
+                : suppliers?.filter((s) => s.contractStatus != null && s.contractStatus !== '').length ?? 0
+            }
+            valueColor="primary"
+          />
         </div>
 
         <div
@@ -119,7 +136,7 @@ export function Suppliers() {
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    TYPE
+                    LOCATION
                   </th>
                   <th
                     style={{
@@ -133,7 +150,7 @@ export function Suppliers() {
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    REGION
+                    REGION HINT
                   </th>
                   <th
                     style={{
@@ -147,28 +164,14 @@ export function Suppliers() {
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    STATUS
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px 16px',
-                      textAlign: 'right',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: 1.5,
-                      color: 'var(--text-tertiary)',
-                      borderBottom: '1px solid var(--border)',
-                    }}
-                  >
-                    ORDERS (30D)
+                    CONTRACT
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {SUPPLIERS.map((supplier) => (
+                {(suppliers ?? []).map((supplier) => (
                   <tr
-                    key={supplier.name}
+                    key={supplier.id}
                     style={{
                       borderBottom: '1px solid var(--border)',
                     }}
@@ -180,7 +183,7 @@ export function Suppliers() {
                         fontWeight: 600,
                       }}
                     >
-                      {supplier.name}
+                      {supplier.supplierName}
                     </td>
                     <td
                       style={{
@@ -190,7 +193,7 @@ export function Suppliers() {
                         fontSize: 11,
                       }}
                     >
-                      {supplier.type}
+                      {supplier.location ?? '—'}
                     </td>
                     <td
                       style={{
@@ -200,7 +203,7 @@ export function Suppliers() {
                         fontSize: 11,
                       }}
                     >
-                      {supplier.region}
+                      {supplier.latitude && supplier.longitude ? 'geo' : '—'}
                     </td>
                     <td
                       style={{
@@ -218,19 +221,8 @@ export function Suppliers() {
                           color: 'var(--success)',
                         }}
                       >
-                        {supplier.status.toUpperCase()}
+                        {(supplier.contractStatus ?? '—').toUpperCase()}
                       </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'right',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
-                      }}
-                    >
-                      {supplier.orders}
                     </td>
                   </tr>
                 ))}

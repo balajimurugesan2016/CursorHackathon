@@ -1,81 +1,88 @@
 import { Filter, FileDown } from 'lucide-react';
+import { useMemo } from 'react';
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi, simulationApi } from '../api/client';
+import type { PlantSupplyRiskDto, SupplyChainRiskReportResponse } from '../api/types';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
 import { SeverityBreakdown } from '../components/SeverityBreakdown';
 import { RecentActivity } from '../components/RecentActivity';
 
-const DISRUPTIONS = [
-  {
-    incident: 'Shanghai Port Congestion',
-    type: 'Logistics',
-    severity: 'Critical' as const,
-    status: 'Investigating',
-    statusColor: 'var(--warning)',
-    impact: '$840K',
-  },
-  {
-    incident: 'European Rail Strike',
-    type: 'Transport',
-    severity: 'Critical' as const,
-    status: 'Mitigating',
-    statusColor: 'var(--info)',
-    impact: '$620K',
-  },
-  {
-    incident: 'TiO2 Raw Material Shortage',
-    type: 'Supply',
-    severity: 'Critical' as const,
-    status: 'Escalated',
-    statusColor: 'var(--error)',
-    impact: '$940K',
-  },
-  {
-    incident: 'Mumbai Monsoon Delays',
-    type: 'Weather',
-    severity: 'High' as const,
-    status: 'Monitoring',
-    statusColor: 'var(--accent)',
-    impact: '$310K',
-  },
-  {
-    incident: 'Customs Clearance Backlog',
-    type: 'Regulatory',
-    severity: 'High' as const,
-    status: 'Mitigating',
-    statusColor: 'var(--info)',
-    impact: '$180K',
-  },
-  {
-    incident: 'Solvent Supplier Bankruptcy',
-    type: 'Supplier',
-    severity: 'High' as const,
-    status: 'Resolved',
-    statusColor: 'var(--success)',
-    impact: '$150K',
-  },
-  {
-    incident: 'Houston Plant Power Outage',
-    type: 'Facility',
-    severity: 'Medium' as const,
-    status: 'Resolved',
-    statusColor: 'var(--success)',
-    impact: '$85K',
-  },
-];
+function labelSeverity(score: number): 'Critical' | 'High' | 'Medium' | 'Low' {
+  if (score >= 0.5) return 'Critical';
+  if (score >= 0.2) return 'High';
+  if (score >= 0.05) return 'Medium';
+  return 'Low';
+}
 
-const severityColors = {
-  Critical: 'var(--error)',
-  High: 'var(--warning)',
-  Medium: 'var(--success)',
-};
+function severityStyle(s: 'Critical' | 'High' | 'Medium' | 'Low') {
+  const map = {
+    Critical: 'var(--error)',
+    High: 'var(--warning)',
+    Medium: 'var(--success)',
+    Low: 'var(--text-tertiary)',
+  };
+  return map[s];
+}
+
+function bucketPlants(plants: PlantSupplyRiskDto[]) {
+  let critical = 0;
+  let high = 0;
+  let medium = 0;
+  for (const p of plants) {
+    const x = Math.max(p.plantRiskScore, p.disturbanceCertainty);
+    if (x >= 0.5) critical++;
+    else if (x >= 0.2) high++;
+    else if (x > 0.05) medium++;
+  }
+  return { critical, high, medium };
+}
+
+/** Article titles surfaced by the simulation agent (from supplier exposure analysis). */
+function articleSignalsFromSimulation(risk: SupplyChainRiskReportResponse | null) {
+  const titles = new Set<string>();
+  for (const p of risk?.plants ?? []) {
+    for (const s of p.suppliers ?? []) {
+      for (const t of s.contributingArticleTitles ?? []) {
+        if (t?.trim()) titles.add(t.trim());
+      }
+    }
+  }
+  return [...titles].slice(0, 8).map((text) => ({
+    color: 'var(--accent)' as const,
+    text,
+    time: 'from simulation report',
+  }));
+}
 
 export function Disruptions() {
+  const { data, loading, error } = useAsync(async () => {
+    const [risk, enterprisePlants] = await Promise.all([
+      simulationApi.supplyChainRiskReport(),
+      enterpriseApi.listPlants(),
+    ]);
+    return { risk, enterprisePlantTotal: enterprisePlants.length };
+  }, []);
+
+  const risk = data?.risk;
+  const plants = risk?.plants ?? [];
+  const { critical, high, medium } = bucketPlants(plants);
+  const activeSignals = plants.filter(
+    (p) => p.plantRiskScore > 0.001 || p.disturbanceCertainty > 0.001
+  ).length;
+
+  const rows = useMemo(() => {
+    return [...plants].sort((a, b) => b.plantRiskScore - a.plantRiskScore);
+  }, [plants]);
+
+  const recentItems = useMemo(() => articleSignalsFromSimulation(risk ?? null), [risk]);
+
   return (
     <Layout>
       <HeaderBar
         title="DISRUPTIONS"
-        subtitle="Active supply chain disruption tracking and incident response"
+        subtitle="Simulation agent (supply-chain-risk) + enterprise-backed plants/suppliers"
         showLive={false}
         rightContent={
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -132,6 +139,11 @@ export function Disruptions() {
           overflow: 'auto',
         }}
       >
+        {error && (
+          <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -140,43 +152,31 @@ export function Disruptions() {
           }}
         >
           <KPICard
-            label="ACTIVE DISRUPTIONS"
-            value="7"
-            valueColor="error"
-            subtext="+2 this week"
-            subtextColor="error"
-          />
-          <KPICard
-            label="CRITICAL SEVERITY"
-            value={
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {'3'}
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: 'var(--error)',
-                    animation: 'pulse 2s infinite',
-                  }}
-                />
-              </span>
-            }
+            label="TOTAL PLANTS (ENTERPRISE)"
+            value={loading ? '…' : data?.enterprisePlantTotal ?? 0}
             valueColor="primary"
-          />
-          <KPICard
-            label="AVG RESOLUTION TIME"
-            value="4.2d"
-            valueColor="primary"
-            subtext="-0.8d vs avg"
-            subtextColor="success"
-          />
-          <KPICard
-            label="EST. REVENUE IMPACT"
-            value="$2.4M"
-            valueColor="info"
-            subtext="monthly exposure"
+            subtext="GET /api/v1/plants"
             subtextColor="primary"
+          />
+          <KPICard
+            label="PLANTS IN SIMULATION REPORT"
+            value={loading ? '…' : risk?.plantCount ?? 0}
+            valueColor="primary"
+          />
+          <KPICard
+            label="ACTIVE SIGNALS"
+            value={loading ? '…' : activeSignals}
+            valueColor={activeSignals > 0 ? 'error' : 'success'}
+          />
+          <KPICard
+            label="PORTFOLIO RISK"
+            value={loading ? '…' : (risk?.portfolioRiskScore ?? 0).toFixed(3)}
+            valueColor="primary"
+          />
+          <KPICard
+            label="REASONING ARTICLES (VIA SIMULATION)"
+            value={loading ? '…' : risk?.reasoningArticleCount ?? 0}
+            valueColor="info"
           />
         </div>
 
@@ -217,7 +217,7 @@ export function Disruptions() {
                   color: 'var(--text-tertiary)',
                 }}
               >
-                ACTIVE DISRUPTION LOG
+                PLANT RISK LOG
               </span>
               <div
                 style={{
@@ -234,7 +234,7 @@ export function Disruptions() {
                     color: 'var(--error)',
                   }}
                 >
-                  7 Active
+                  {loading ? '…' : rows.length} rows
                 </span>
               </div>
             </div>
@@ -261,21 +261,7 @@ export function Disruptions() {
                         borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      INCIDENT
-                    </th>
-                    <th
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'left',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: 1.5,
-                        color: 'var(--text-tertiary)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      TYPE
+                      PLANT
                     </th>
                     <th
                       style={{
@@ -303,7 +289,21 @@ export function Disruptions() {
                         borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      STATUS
+                      RISK
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: 1.5,
+                        color: 'var(--text-tertiary)',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      DISTURBANCE
                     </th>
                     <th
                       style={{
@@ -317,73 +317,79 @@ export function Disruptions() {
                         borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      IMPACT
+                      HRS TO IMPACT
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {DISRUPTIONS.map((row) => (
-                    <tr
-                      key={row.incident}
-                      style={{ borderBottom: '1px solid var(--border)' }}
-                    >
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          color: 'var(--text-primary)',
-                          fontWeight: 600,
-                        }}
+                  {rows.map((row) => {
+                    const score = Math.max(row.plantRiskScore, row.disturbanceCertainty);
+                    const sev = labelSeverity(score);
+                    return (
+                      <tr
+                        key={row.plantId ?? row.plantName}
+                        style={{ borderBottom: '1px solid var(--border)' }}
                       >
-                        {row.incident}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 11,
-                        }}
-                      >
-                        {row.type}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span
+                        <td
                           style={{
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 10,
+                            padding: '12px 16px',
+                            color: 'var(--text-primary)',
                             fontWeight: 600,
-                            background: `${severityColors[row.severity]}20`,
-                            color: severityColors[row.severity],
                           }}
                         >
-                          {row.severity}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 11,
-                          color: row.statusColor,
-                        }}
-                      >
-                        {row.status}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px 16px',
-                          textAlign: 'right',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 11,
-                        }}
-                      >
-                        {row.impact}
-                      </td>
-                    </tr>
-                  ))}
+                          {row.plantName}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: `${severityStyle(sev)}20`,
+                              color: severityStyle(sev),
+                            }}
+                          >
+                            {sev}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {(row.plantRiskScore * 100).toFixed(1)}%
+                        </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {(row.disturbanceCertainty * 100).toFixed(1)}%
+                        </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            textAlign: 'right',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                          }}
+                        >
+                          {row.estimatedHoursToImpact != null
+                            ? row.estimatedHoursToImpact.toFixed(0)
+                            : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -398,8 +404,8 @@ export function Disruptions() {
               gap: 16,
             }}
           >
-            <SeverityBreakdown />
-            <RecentActivity />
+            <SeverityBreakdown critical={critical} high={high} medium={medium} />
+            <RecentActivity items={recentItems} />
           </div>
         </div>
       </div>

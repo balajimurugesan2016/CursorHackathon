@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi, simulationApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
@@ -6,49 +8,58 @@ import { WorldMap } from '../components/WorldMap';
 import { DataModeToggle } from '../components/DataModeToggle';
 import { EventProbabilityCard } from '../components/EventProbabilityCard';
 
-const EVENT_CARDS = [
-  {
-    badge: 'CRITICAL',
-    badgeColor: 'var(--error)',
-    percentage: 87,
-    title: 'Port of Shanghai Congestion',
-    description:
-      'Extended delays expected for 2-3 weeks. Affects 34 active shipments across APAC region.',
-  },
-  {
-    badge: 'HIGH',
-    badgeColor: 'var(--warning)',
-    percentage: 72,
-    title: 'European Rail Strike',
-    description:
-      'Transit disruption across DE-FR corridor. 18 supplier routes impacted for chemical transport.',
-  },
-  {
-    badge: 'MEDIUM',
-    badgeColor: '#F59E0B',
-    percentage: 54,
-    title: 'TiO₂ Supply Shortage',
-    description:
-      'Titanium dioxide availability declining. Major supplier in Australia reducing output by 30%.',
-  },
-  {
-    badge: 'LOW',
-    badgeColor: 'var(--accent)',
-    percentage: 28,
-    title: 'Gulf Hurricane Season',
-    description:
-      'Potential disruption to Houston plant logistics. Early models show moderate tropical activity.',
-  },
-];
+function badgeForRisk(r: number): { badge: string; badgeColor: string } {
+  if (r >= 0.5) return { badge: 'CRITICAL', badgeColor: 'var(--error)' };
+  if (r >= 0.2) return { badge: 'HIGH', badgeColor: 'var(--warning)' };
+  if (r >= 0.05) return { badge: 'MEDIUM', badgeColor: '#F59E0B' };
+  return { badge: 'LOW', badgeColor: 'var(--accent)' };
+}
 
 export function PredictionsSimulation() {
   const [mode, setMode] = useState<'real' | 'simulation'>('real');
+
+  const { data, loading, error } = useAsync(async () => {
+    const [risk, enterprisePlants] = await Promise.all([
+      simulationApi.supplyChainRiskReport(),
+      enterpriseApi.listPlants(),
+    ]);
+    return { risk, enterprisePlantTotal: enterprisePlants.length };
+  }, []);
+
+  const risk = data?.risk;
+  const enterprisePlantTotal = data?.enterprisePlantTotal ?? 0;
+
+  const cards = useMemo(() => {
+    const plants = risk?.plants ?? [];
+    return [...plants]
+      .map((p) => ({
+        p,
+        score: Math.max(p.plantRiskScore, p.disturbanceCertainty),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(({ p, score }, idx) => {
+        const { badge, badgeColor } = badgeForRisk(score);
+        const desc =
+          p.rationale?.slice(0, 280) ||
+          risk?.portfolioRationale?.slice(0, 280) ||
+          '(no rationale)';
+        return {
+          key: `${p.plantName}-${idx}`,
+          badge,
+          badgeColor,
+          percentage: Math.round(score * 100),
+          title: p.plantName,
+          description: desc,
+        };
+      });
+  }, [risk]);
 
   return (
     <Layout>
       <HeaderBar
         title="PREDICTIONS & SIMULATION"
-        subtitle="AI-powered event probability analysis and supply chain scenario modeling."
+        subtitle="Simulation agent (supply-chain-risk) + enterpriseservice. No direct reasoning-agent calls from the UI."
         showLive={false}
         rightContent={<DataModeToggle value={mode} onChange={setMode} />}
       />
@@ -62,73 +73,84 @@ export function PredictionsSimulation() {
           overflow: 'auto',
         }}
       >
-        {mode === 'simulation' && (
+        {error && (
+          <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
           <div
             style={{
               display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
+              justifyContent: 'space-between',
+              alignItems: 'center',
             }}
           >
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 2,
+                color: 'var(--text-tertiary)',
+              }}
+            >
+              {mode === 'simulation' ? 'SIMULATION VIEW' : 'PLANT RISK SIGNALS'}
+            </span>
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 6,
+                padding: '4px 8px',
+                background: 'var(--accent-dim)',
+                borderRadius: 4,
               }}
             >
               <span
                 style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: 2,
-                  color: 'var(--text-tertiary)',
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
                 }}
-              >
-                EVENT PROBABILITY PREDICTIONS
-              </span>
-              <div
+              />
+              <span
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '4px 8px',
-                  background: 'var(--accent-dim)',
-                  borderRadius: 4,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: 1,
+                  color: 'var(--accent)',
                 }}
               >
-                <span
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: 'var(--accent)',
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: 1,
-                    color: 'var(--accent)',
-                  }}
-                >
-                  AI GENERATED
-                </span>
-              </div>
+                SIMULATION AGENT
+              </span>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                gap: 16,
-                flexWrap: 'wrap',
-              }}
-            >
-              {EVENT_CARDS.map((card) => (
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            {loading && (
+              <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                Loading simulation report…
+              </span>
+            )}
+            {!loading &&
+              cards.map((card) => (
                 <EventProbabilityCard
-                  key={card.title}
+                  key={card.key}
                   badge={card.badge}
                   badgeColor={card.badgeColor}
                   percentage={card.percentage}
@@ -136,9 +158,13 @@ export function PredictionsSimulation() {
                   description={card.description}
                 />
               ))}
-            </div>
+            {!loading && cards.length === 0 && !error && (
+              <span style={{ color: 'var(--text-secondary)' }}>
+                No plant rows in the simulation report — check enterprise seeds and agent stack.
+              </span>
+            )}
           </div>
-        )}
+        </div>
 
         <div
           style={{
@@ -147,10 +173,28 @@ export function PredictionsSimulation() {
             flexWrap: 'wrap',
           }}
         >
-          <KPICard label="DEMAND FORECAST (30D)" value="+12.4%" valueColor="success" />
-          <KPICard label="SUPPLY RISK SCORE" value="0.23" valueColor="primary" />
-          <KPICard label="ACTIVE SCENARIOS" value="8" valueColor="primary" />
-          <KPICard label="MODEL ACCURACY" value="94.1%" valueColor="success" />
+          <KPICard
+            label="ARTICLES (IN SIMULATION RUN)"
+            value={loading ? '…' : risk?.reasoningArticleCount ?? 0}
+            valueColor="primary"
+          />
+          <KPICard
+            label="PORTFOLIO RISK"
+            value={loading ? '…' : (risk?.portfolioRiskScore ?? 0).toFixed(3)}
+            valueColor="primary"
+          />
+          <KPICard
+            label="TOTAL PLANTS (ENTERPRISE)"
+            value={loading ? '…' : enterprisePlantTotal}
+            valueColor="primary"
+            subtext={`simulation report rows: ${risk?.plantCount ?? 0}`}
+            subtextColor="primary"
+          />
+          <KPICard
+            label="VESSEL RADIUS (NM)"
+            value={loading ? '…' : (risk?.searchRadiusNm ?? 0).toFixed(0)}
+            valueColor="success"
+          />
         </div>
 
         <div
@@ -161,7 +205,7 @@ export function PredictionsSimulation() {
             minHeight: 0,
           }}
         >
-          <WorldMap />
+          <WorldMap title="PLANT MAP (ENTERPRISE)" />
 
           <div
             style={{
@@ -184,103 +228,21 @@ export function PredictionsSimulation() {
                 color: 'var(--text-tertiary)',
               }}
             >
-              SIMULATION CONTROLS
+              DATA SOURCES
             </span>
-            <div
+            <p
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13,
+                color: 'var(--text-secondary)',
+                margin: 0,
+                lineHeight: 1.5,
               }}
             >
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'var(--bg-surface)',
-                  borderRadius: 4,
-                  borderLeft: '3px solid var(--accent)',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Baseline Scenario
-                </span>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    color: 'var(--text-secondary)',
-                    marginTop: 4,
-                  }}
-                >
-                  Current demand model · No disruptions
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'var(--bg-surface)',
-                  borderRadius: 4,
-                  borderLeft: '3px solid var(--text-tertiary)',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Stress Test — Supply Shock
-                </span>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    color: 'var(--text-secondary)',
-                    marginTop: 4,
-                  }}
-                >
-                  Simulate 20% supplier loss
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'var(--bg-surface)',
-                  borderRadius: 4,
-                  borderLeft: '3px solid var(--text-tertiary)',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Demand Surge — Q4 Peak
-                </span>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    color: 'var(--text-secondary)',
-                    marginTop: 4,
-                  }}
-                >
-                  +35% demand forecast
-                </div>
-              </div>
-            </div>
+              Cards and KPIs use the <strong>simulation agent</strong> supply-chain risk report (port 8094). Maps and
+              registries use <strong>enterpriseservice</strong> (port 8085). Reasoning runs inside the simulation
+              pipeline, not from the browser.
+            </p>
           </div>
         </div>
       </div>

@@ -1,32 +1,38 @@
-const plants = [
-  { name: 'Frankfurt', x: 197, y: 147 },
-  { name: 'Shanghai', x: 447, y: 172 },
-  { name: 'Houston', x: 117, y: 197 },
-  { name: 'Mumbai', x: 367, y: 207 },
-  { name: 'São Paulo', x: 177, y: 297 },
-];
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi } from '../api/client';
+import { parseCoord, projectToSvg } from '../util/geo';
 
-const supplierClusters = [
-  { x: 210, y: 165, r: 2.5, opacity: 0.7 },
-  { x: 225, y: 155, r: 2, opacity: 0.6 },
-  { x: 390, y: 195, r: 2.5, opacity: 0.7 },
-  { x: 470, y: 185, r: 2, opacity: 0.6 },
-  { x: 135, y: 210, r: 2, opacity: 0.6 },
-  { x: 245, y: 170, r: 1.5, opacity: 0.5 },
-  { x: 410, y: 165, r: 2, opacity: 0.5 },
-];
-
-const routes = [
-  { x1: 200, y1: 180, x2: 450, y2: 180 },
-  { x1: 320, y1: 160, x2: 500, y2: 220 },
-  { x1: 200, y1: 180, x2: 300, y2: 300 },
-  { x1: 450, y1: 175, x2: 570, y2: 205 },
-  { x1: 140, y1: 280, x2: 200, y2: 180 },
-];
-
-const viewBox = { x: 0, y: 0, width: 600, height: 400 };
+const viewBox = { width: 600, height: 400 };
 
 export function SupplyNetworkMap() {
+  const { data: plants, loading, error } = useAsync(() => enterpriseApi.listPlants(), []);
+  const { data: suppliers } = useAsync(() => enterpriseApi.listSuppliers(), []);
+
+  const plantPts =
+    plants?.flatMap((p) => {
+      const lat = parseCoord(p.latitude);
+      const lon = parseCoord(p.longitude);
+      if (lat == null || lon == null) return [];
+      return [{ name: p.plantName, ...projectToSvg(lat, lon, viewBox.width, viewBox.height) }];
+    }) ?? [];
+
+  const supplierPts =
+    suppliers?.flatMap((s) => {
+      const lat = parseCoord(s.latitude);
+      const lon = parseCoord(s.longitude);
+      if (lat == null || lon == null) return [];
+      return [projectToSvg(lat, lon, viewBox.width, viewBox.height)];
+    }) ?? [];
+
+  const routes: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  for (const pp of plantPts) {
+    for (const sp of supplierPts) {
+      routes.push({ x1: pp.x, y1: pp.y, x2: sp.x, y2: sp.y });
+    }
+  }
+  const maxRoutes = 12;
+  const routeSlice = routes.slice(0, maxRoutes);
+
   return (
     <div
       style={{
@@ -57,7 +63,7 @@ export function SupplyNetworkMap() {
             color: 'var(--text-tertiary)',
           }}
         >
-          3JS GLOBAL SUPPLY NETWORK
+          GLOBAL SUPPLY NETWORK
         </span>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -100,25 +106,6 @@ export function SupplyNetworkMap() {
               Suppliers
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span
-              style={{
-                width: 12,
-                height: 1,
-                background: 'var(--text-tertiary)',
-              }}
-            />
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 500,
-                color: 'var(--text-secondary)',
-              }}
-            >
-              Routes
-            </span>
-          </div>
         </div>
       </div>
 
@@ -130,8 +117,25 @@ export function SupplyNetworkMap() {
           minHeight: 300,
         }}
       >
+        {error && (
+          <div
+            style={{
+              padding: 16,
+              color: 'var(--error)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+            }}
+          >
+            {error}
+          </div>
+        )}
+        {loading && !plantPts.length && !error && (
+          <div style={{ padding: 16, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            Loading network…
+          </div>
+        )}
         <svg
-          viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+          viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
           preserveAspectRatio="xMidYMid meet"
           style={{
             width: '100%',
@@ -139,7 +143,6 @@ export function SupplyNetworkMap() {
             minHeight: 300,
           }}
         >
-          {/* Grid lines */}
           <line x1={0} y1={100} x2={600} y2={100} stroke="#1E293B40" strokeWidth={1} />
           <line x1={0} y1={200} x2={600} y2={200} stroke="#1E293B40" strokeWidth={1} />
           <line x1={0} y1={300} x2={600} y2={300} stroke="#1E293B40" strokeWidth={1} />
@@ -147,8 +150,7 @@ export function SupplyNetworkMap() {
           <line x1={300} y1={0} x2={300} y2={400} stroke="#1E293B40" strokeWidth={1} />
           <line x1={450} y1={0} x2={450} y2={400} stroke="#1E293B40" strokeWidth={1} />
 
-          {/* Route lines */}
-          {routes.map((r, i) => (
+          {routeSlice.map((r, i) => (
             <line
               key={i}
               x1={r.x1}
@@ -160,20 +162,11 @@ export function SupplyNetworkMap() {
             />
           ))}
 
-          {/* Supplier clusters */}
-          {supplierClusters.map((s, i) => (
-            <circle
-              key={i}
-              cx={s.x}
-              cy={s.y}
-              r={s.r}
-              fill="var(--warning)"
-              opacity={s.opacity}
-            />
+          {supplierPts.map((s, i) => (
+            <circle key={`s-${i}`} cx={s.x} cy={s.y} r={2.5} fill="var(--warning)" opacity={0.75} />
           ))}
 
-          {/* Plant nodes */}
-          {plants.map((p) => (
+          {plantPts.map((p) => (
             <g key={p.name}>
               <circle cx={p.x} cy={p.y} r={5} fill="var(--accent)" />
               <text
@@ -210,7 +203,7 @@ export function SupplyNetworkMap() {
               color: 'var(--accent)',
             }}
           >
-            5 NODES
+            {plants?.length ?? 0} PLANTS (ENTERPRISE)
           </span>
           <span
             style={{
@@ -221,7 +214,7 @@ export function SupplyNetworkMap() {
               color: 'var(--text-muted)',
             }}
           >
-            847 CONNECTIONS
+            {plantPts.length} with lat/lon on map
           </span>
           <span
             style={{
@@ -232,7 +225,7 @@ export function SupplyNetworkMap() {
               color: 'var(--text-muted)',
             }}
           >
-            LATENCY: 42ms
+            {supplierPts.length} SUPPLIERS (geo)
           </span>
         </div>
       </div>
