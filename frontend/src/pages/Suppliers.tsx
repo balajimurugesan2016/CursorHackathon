@@ -3,12 +3,14 @@ import { enterpriseApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
+import { SupplierMap } from '../components/SupplierMap';
 
 export function Suppliers() {
   const { data: suppliers, loading, error } = useAsync(() => enterpriseApi.listSuppliers(), []);
 
-  const ports = suppliers?.filter((s) => (s.location ?? '').toUpperCase().includes('PORT')).length ?? 0;
-  const hubs = (suppliers?.length ?? 0) - ports;
+  const activeContracts = suppliers?.filter((s) => (s.contractStatus ?? '').toUpperCase() === 'ACTIVE').length ?? 0;
+  const pendingRenewal = suppliers?.filter((s) => (s.contractStatus ?? '').toUpperCase() === 'PENDING_RENEWAL').length ?? 0;
+  const other = (suppliers?.length ?? 0) - activeContracts - pendingRenewal;
 
   return (
     <Layout>
@@ -40,27 +42,25 @@ export function Suppliers() {
           }}
         >
           <KPICard
-            label="TOTAL SUPPLIERS"
+            label="TOTAL SUPPLIERS (ENTERPRISE)"
             value={loading ? '…' : suppliers?.length ?? 0}
             valueColor="primary"
+            subtext="GET /api/v1/suppliers"
+            subtextColor="primary"
           />
           <KPICard
-            label="NAME CONTAINS PORT"
-            value={loading ? '…' : ports}
-            valueColor="primary"
+            label="ACTIVE CONTRACTS"
+            value={loading ? '…' : activeContracts}
+            valueColor="success"
           />
           <KPICard
-            label="OTHER"
-            value={loading ? '…' : hubs}
-            valueColor="primary"
+            label="PENDING RENEWAL"
+            value={loading ? '…' : pendingRenewal}
+            valueColor="error"
           />
           <KPICard
-            label="CONTRACT STATUS (FILLED)"
-            value={
-              loading
-                ? '…'
-                : suppliers?.filter((s) => s.contractStatus != null && s.contractStatus !== '').length ?? 0
-            }
+            label="OTHER STATUS"
+            value={loading ? '…' : other}
             valueColor="primary"
           />
         </div>
@@ -68,38 +68,46 @@ export function Suppliers() {
         <div
           style={{
             flex: 1,
-            background: 'var(--bg-card)',
-            borderRadius: 4,
-            overflow: 'hidden',
             display: 'flex',
-            flexDirection: 'column',
-            minWidth: 0,
+            gap: 16,
+            minHeight: 0,
           }}
         >
           <div
             style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border)',
+              flex: 1,
+              background: 'var(--bg-card)',
+              borderRadius: 4,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
             }}
           >
-            <span
+            <div
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 2,
-                color: 'var(--text-tertiary)',
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--border)',
               }}
             >
-              SUPPLIER REGISTRY
-            </span>
-          </div>
-          <div
-            style={{
-              flex: 1,
-              overflow: 'auto',
-            }}
-          >
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: 2,
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                SUPPLIER REGISTRY
+              </span>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+              }}
+            >
             <table
               style={{
                 width: '100%',
@@ -169,65 +177,86 @@ export function Suppliers() {
                 </tr>
               </thead>
               <tbody>
-                {(suppliers ?? []).map((supplier) => (
-                  <tr
-                    key={supplier.id}
-                    style={{
-                      borderBottom: '1px solid var(--border)',
-                    }}
-                  >
+                {!loading && (suppliers ?? []).length === 0 && (
+                  <tr>
                     <td
+                      colSpan={4}
                       style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-primary)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {supplier.supplierName}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
+                        padding: 24,
+                        textAlign: 'center',
+                        color: 'var(--text-tertiary)',
                         fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
+                        fontSize: 12,
                       }}
                     >
-                      {supplier.location ?? '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
-                      }}
-                    >
-                      {supplier.latitude && supplier.longitude ? 'geo' : '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          background: 'var(--success-dim)',
-                          color: 'var(--success)',
-                        }}
-                      >
-                        {(supplier.contractStatus ?? '—').toUpperCase()}
-                      </span>
+                      No suppliers from /api/v1/suppliers
                     </td>
                   </tr>
-                ))}
+                )}
+                {(suppliers ?? []).map((supplier) => {
+                  const status = (supplier.contractStatus ?? '').toUpperCase();
+                  const isActive = status === 'ACTIVE';
+                  return (
+                    <tr
+                      key={supplier.id}
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {supplier.supplierName}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                        }}
+                      >
+                        {supplier.location ?? '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                        }}
+                      >
+                        {supplier.latitude && supplier.longitude ? 'geo' : '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            background: isActive ? 'var(--success-dim)' : 'var(--error-dim)',
+                            color: isActive ? 'var(--success)' : 'var(--error)',
+                          }}
+                        >
+                          {(supplier.contractStatus ?? '—').toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+          <div style={{ width: 400, minWidth: 400 }}>
+            <SupplierMap />
           </div>
         </div>
       </div>

@@ -21,4 +21,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Expose port (overridden by PORT at runtime)
 EXPOSE 8080
 
-CMD ["/bin/sh", "-c", "export PORT=${PORT:-8080} && envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "export PORT=${PORT:-8080} && export API_BACKEND_URL=${API_BACKEND_URL:-http://localhost:8085} && envsubst '${PORT} ${API_BACKEND_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

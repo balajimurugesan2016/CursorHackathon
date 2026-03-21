@@ -196,6 +196,22 @@ export function Plants() {
                   </tr>
                 </thead>
                 <tbody>
+                  {!loading && (plants ?? []).length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        style={{
+                          padding: 24,
+                          textAlign: 'center',
+                          color: 'var(--text-tertiary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 12,
+                        }}
+                      >
+                        No plants from /api/v1/plants
+                      </td>
+                    </tr>
+                  )}
                   {(plants ?? []).map((plant) => {
                     const st = (plant.status ?? 'active').toLowerCase();
                     const isActive = st === 'active';

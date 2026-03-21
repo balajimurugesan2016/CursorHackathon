@@ -20,6 +20,18 @@ export interface Supplier {
   contractStatus?: string | null;
 }
 
+/** JSON from enterpriseservice shipments API. */
+export interface Shipment {
+  id: number;
+  shipmentItem?: string | null;
+  quantity?: number | null;
+  shipNumber?: string | null;
+  status?: string | null;
+  receiveDate?: string | null;
+  suppliers?: Supplier[] | null;
+  plants?: Plant[] | null;
+}
+
 export interface SupplierSupplyRiskDto {
   supplierId: number | null;
   supplierName: string;

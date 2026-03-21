@@ -1,78 +1,45 @@
+import { useAsync } from '../hooks/useAsync';
+import { enterpriseApi } from '../api/client';
+import type { Shipment } from '../api/types';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
 
-const SHIPMENTS = [
-  {
-    shipmentNo: 'SHP-2024-001',
-    item: 'Sodium Hydroxide',
-    quantity: '5,000 kg',
-    supplier: 'ChemCorp Asia',
-    plant: 'Frankfurt',
-    shipNumber: 'VSL-88421',
-    status: 'In Transit' as const,
-    receiveDate: '2024-03-25',
-  },
-  {
-    shipmentNo: 'SHP-2024-002',
-    item: 'Ethylene Glycol',
-    quantity: '12,000 L',
-    supplier: 'Dow Chemical Europe',
-    plant: 'Shanghai',
-    shipNumber: 'VSL-77234',
-    status: 'Delivered' as const,
-    receiveDate: '2024-03-20',
-  },
-  {
-    shipmentNo: 'SHP-2024-003',
-    item: 'Ammonia Solution',
-    quantity: '8,500 kg',
-    supplier: 'BASF',
-    plant: 'Houston',
-    shipNumber: 'VSL-99102',
-    status: 'Delayed' as const,
-    receiveDate: '2024-03-28',
-  },
-  {
-    shipmentNo: 'SHP-2024-004',
-    item: 'Titanium Dioxide',
-    quantity: '15,000 kg',
-    supplier: 'ChemCorp Asia',
-    plant: 'Rotterdam',
-    shipNumber: 'VSL-55321',
-    status: 'In Transit' as const,
-    receiveDate: '2024-03-30',
-  },
-  {
-    shipmentNo: 'SHP-2024-005',
-    item: 'Sulfuric Acid',
-    quantity: '20,000 L',
-    supplier: 'Solvay',
-    plant: 'Frankfurt',
-    shipNumber: 'VSL-44218',
-    status: 'Pending' as const,
-    receiveDate: '2024-04-02',
-  },
-  {
-    shipmentNo: 'SHP-2024-006',
-    item: 'Methanol',
-    quantity: '10,000 L',
-    supplier: 'Methanex',
-    plant: 'Shanghai',
-    shipNumber: 'VSL-66543',
-    status: 'Delivered' as const,
-    receiveDate: '2024-03-18',
-  },
-];
+function formatReceiveDate(s: string | null | undefined): string {
+  if (!s) return '—';
+  try {
+    const d = new Date(s);
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return s;
+  }
+}
+
+const statusDisplay: Record<string, string> = {
+  IN_TRANSIT: 'In Transit',
+  DELIVERED: 'Delivered',
+  DELAYED: 'Delayed',
+  PENDING: 'Pending',
+  MAINTENANCE: 'Maintenance',
+};
 
 const statusColors: Record<string, string> = {
-  'In Transit': 'var(--info)',
-  Delivered: 'var(--success)',
-  Delayed: 'var(--error)',
-  Pending: 'var(--warning)',
+  IN_TRANSIT: 'var(--info)',
+  DELIVERED: 'var(--success)',
+  DELAYED: 'var(--error)',
+  PENDING: 'var(--warning)',
+  MAINTENANCE: 'var(--error)',
 };
 
 export function Shipments() {
+  const { data: shipments, loading, error } = useAsync(() => enterpriseApi.listShipments(), []);
+
+  const inTransit = shipments?.filter((s) => (s.status ?? '').toUpperCase() === 'IN_TRANSIT').length ?? 0;
+  const delivered = shipments?.filter((s) => (s.status ?? '').toUpperCase() === 'DELIVERED').length ?? 0;
+  const other = (shipments?.length ?? 0) - inTransit - delivered;
+  const onTimeRate =
+    shipments && shipments.length > 0 ? Math.round((delivered / shipments.length) * 100) : 0;
+
   return (
     <Layout>
       <HeaderBar
@@ -90,6 +57,11 @@ export function Shipments() {
           overflow: 'auto',
         }}
       >
+        {error && (
+          <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -98,24 +70,31 @@ export function Shipments() {
           }}
         >
           <KPICard
-            label="TOTAL SHIPMENTS"
-            value="24"
+            label="TOTAL SHIPMENTS (ENTERPRISE)"
+            value={loading ? '…' : shipments?.length ?? 0}
             valueColor="info"
+            subtext="GET /api/v1/shipments"
+            subtextColor="primary"
           />
           <KPICard
             label="IN TRANSIT"
-            value="12"
+            value={loading ? '…' : inTransit}
             valueColor="primary"
           />
           <KPICard
-            label="ON TIME RATE"
-            value="91%"
+            label="DELIVERED"
+            value={loading ? '…' : delivered}
             valueColor="success"
           />
           <KPICard
-            label="DELAYED"
-            value="3"
+            label="OTHER STATUS"
+            value={loading ? '…' : other}
             valueColor="warning"
+          />
+          <KPICard
+            label="DELIVERED RATE"
+            value={loading ? '…' : `${onTimeRate}%`}
+            valueColor="success"
           />
         </div>
 
@@ -171,7 +150,7 @@ export function Shipments() {
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    SHIPMENT NO.
+                    ID
                   </th>
                   <th
                     style={{
@@ -274,115 +253,116 @@ export function Shipments() {
                 </tr>
               </thead>
               <tbody>
-                {SHIPMENTS.map((row) => (
-                  <tr
-                    key={row.shipmentNo}
-                    style={{ borderBottom: '1px solid var(--border)' }}
-                  >
+                {!loading && (shipments ?? []).length === 0 && (
+                  <tr>
                     <td
+                      colSpan={9}
                       style={{
-                        padding: '12px 16px',
+                        padding: 24,
+                        textAlign: 'center',
+                        color: 'var(--text-tertiary)',
                         fontFamily: 'var(--font-mono)',
                         fontSize: 12,
                       }}
                     >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        style={{
-                          color: 'var(--accent)',
-                          textDecoration: 'none',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.textDecoration = 'underline';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.textDecoration = 'none';
-                        }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.textDecoration = 'underline';
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.textDecoration = 'none';
-                        }}
-                      >
-                        {row.shipmentNo}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-primary)',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {row.item}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
-                      }}
-                    >
-                      {row.quantity}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      {row.supplier}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      {row.plant}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
-                      }}
-                    >
-                      {row.shipNumber}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 9999,
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          background: `${statusColors[row.status]}20`,
-                          color: statusColors[row.status],
-                        }}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px 16px',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 11,
-                      }}
-                    >
-                      {row.receiveDate}
+                      No shipments from /api/v1/shipments
                     </td>
                   </tr>
-                ))}
+                )}
+                {(shipments ?? []).map((row: Shipment) => {
+                  const status = (row.status ?? '').toUpperCase();
+                  const statusColor = statusColors[status] ?? 'var(--text-secondary)';
+                  const supplierName = row.suppliers?.[0]?.supplierName ?? '—';
+                  const plantName = row.plants?.[0]?.plantName ?? row.plants?.[0]?.location ?? '—';
+                  return (
+                    <tr
+                      key={row.id}
+                      style={{ borderBottom: '1px solid var(--border)' }}
+                    >
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 12,
+                          color: 'var(--accent)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {row.id}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-primary)',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {row.shipmentItem ?? '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                        }}
+                      >
+                        {row.quantity == null ? '—' : String(row.quantity)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {supplierName}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {plantName}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                        }}
+                      >
+                        {row.shipNumber ?? '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 9999,
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            background: `${statusColor}20`,
+                            color: statusColor,
+                          }}
+                        >
+                          {(statusDisplay[status] ?? status) || '—'}
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                        }}
+                      >
+                        {formatReceiveDate(row.receiveDate ?? undefined)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
