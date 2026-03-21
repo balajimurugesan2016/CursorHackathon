@@ -9,13 +9,14 @@ This folder holds **Spring Boot agents** that sit on top of the shared mock APIs
 | **news-agent** | **8090** | `com.hackathon.newsagent` | Classify news into supply-chain risk categories (multi-label, lexicon). |
 | **locations-agent** | **8091** | `com.hackathon.locationsagent` | Resolve **place names → coordinates** (catalog + fuzzy matching). |
 | **vessel-agent** | **8092** | `com.hackathon.vesselagent` | List **vessels near a point** using lat/lon + **radius (km)**. |
+| **reasoning-agent** | **8093** | `com.hackathon.reasoningagent` | **Orchestrates** news → locations → vessels: classified news, geo resolution, nearby ships. |
 
 **Mock endpoints used**
 
 | Mock path | Method | Used by |
 |-----------|--------|---------|
 | `/api/v1/article/getArticles` | `POST` | news-agent |
-| `/api/v1/places` | `GET` | locations-agent |
+| `/api/v1/places` | `GET` | locations-agent, reasoning-agent (mention scan) |
 | `/api/vessels_operations/get-vessels-by-area` | `POST` | vessel-agent (`latitude`, `longitude`, `circle_radius` in km) |
 
 ---
@@ -33,13 +34,47 @@ From the repository root:
 cd mockServices && mvn spring-boot:run
 ```
 
-Then start each agent you need in a **separate terminal** (ports **8090** / **8091** / **8092**).
+### Port map (local defaults)
+
+| Port | Process |
+|------|---------|
+| **8082** | `mockServices` (news, places catalog, vessels, places-by-area, …) |
+| **8090** | news-agent |
+| **8091** | locations-agent |
+| **8092** | vessel-agent |
+| **8093** | reasoning-agent |
+
+Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it.
+
+### Run the full stack (smoke test)
+
+In five terminals from the repo root (after **8082** is healthy, e.g. `curl -sf http://localhost:8082/api/v1/places`):
+
+```bash
+cd mockServices && mvn spring-boot:run
+cd agents/news-agent && mvn spring-boot:run
+cd agents/locations-agent && mvn spring-boot:run
+cd agents/vessel-agent && mvn spring-boot:run
+cd agents/reasoning-agent && mvn spring-boot:run
+```
+
+Quick checks:
+
+```bash
+curl -sf "http://localhost:8082/api/v1/places" | head -c 80 && echo
+curl -sf "http://localhost:8090/api/agent/classified-news" | head -c 80 && echo
+curl -sf "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City" | head -c 80 && echo
+curl -sf "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusKm=50" | head -c 80 && echo
+curl -sf "http://localhost:8093/api/agent/reasoning-report" | head -c 80 && echo
+```
+
+**reasoning-agent note:** `catalogMentions` is filled only when a **catalog place name** appears in an article’s **title or body** (substring match). Many mock articles mention cities in the title but not the full catalog string in the body, so **zero mentions** for an article is normal. Vessel lists can be **empty** if no mock ships fall within `reasoning.pipeline.search-radius-km` of a resolved point.
 
 ---
 
 ## news-agent
 
-Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, returns **multi-label** categories with scores and matched keyword signals.
+Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, returns **multi-label** categories with scores and matched keyword signals. Each article in the response includes **`body`** text so downstream agents (e.g. reasoning-agent) can extract geography.
 
 ### Run
 
@@ -71,7 +106,7 @@ If the news API is unreachable: **503** with `{ "message": "..." }`.
 
 ### Response (summary)
 
-- `articleCount`, `articles[]` with `uri`, `title`, `url`, `date`, `dateTime`, `categories[]`
+- `articleCount`, `articles[]` with `uri`, `title`, **`body`**, `url`, `date`, `dateTime`, `categories[]`
 - Each category: `categoryId`, `categoryLabel`, `categoryDescription`, `score`, `matchedSignals`
 
 Themes include geopolitical risk, trade/tariffs, disasters, logistics disruption, raw materials, cyber, and corporate restructuring. Rules live in `ArticleClassifier`.
@@ -205,6 +240,54 @@ cd agents/vessel-agent && mvn -q compile
 
 ---
 
+## reasoning-agent
+
+**End-to-end pipeline** (no extra ML here):
+
+1. **news-agent** — `GET /api/agent/classified-news` (articles with **title**, **body**, risk **categories**).
+2. **Place mention scan** — loads `GET /api/v1/places` (mock) and finds catalog **place names** that appear as substrings in title + body (longest names checked first to reduce noise).
+3. **locations-agent** — for each distinct mention, `GET /api/agent/resolve-location?name=…` to obtain coordinates.
+4. **vessel-agent** — for each **unique** resolved coordinate, `GET /api/agent/vessels-nearby` with `reasoning.pipeline.search-radius-km` (deduplicates multiple place names that map to the same point).
+
+Requires **mockServices** plus **news**, **locations**, and **vessel** agents running. Returns **503** if any upstream HTTP call fails.
+
+### Run
+
+```bash
+cd agents/reasoning-agent && mvn spring-boot:run
+```
+
+### Configuration
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| `reasoning.upstream.news-agent-base-url` | `http://localhost:8090` | news-agent |
+| `reasoning.upstream.locations-agent-base-url` | `http://localhost:8091` | locations-agent |
+| `reasoning.upstream.vessel-agent-base-url` | `http://localhost:8092` | vessel-agent |
+| `reasoning.upstream.places-catalog-url` | `http://localhost:8082/api/v1/places` | Mock catalog for substring mention detection |
+| `reasoning.pipeline.search-radius-km` | `100` | Radius passed to vessel-agent |
+| `server.port` | `8093` | reasoning-agent port |
+
+### HTTP API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/agent/reasoning-report` | Full pipeline JSON |
+
+```bash
+curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.tool
+```
+
+Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search).
+
+### Build
+
+```bash
+cd agents/reasoning-agent && mvn -q compile
+```
+
+---
+
 ## Project layout
 
 ```
@@ -216,7 +299,10 @@ agents/
 ├── locations-agent/
 │   ├── pom.xml
 │   └── src/main/java/com/hackathon/locationsagent/...
-└── vessel-agent/
+├── vessel-agent/
+│   ├── pom.xml
+│   └── src/main/java/com/hackathon/vesselagent/...
+└── reasoning-agent/
     ├── pom.xml
-    └── src/main/java/com/hackathon/vesselagent/...
+    └── src/main/java/com/hackathon/reasoningagent/...
 ```

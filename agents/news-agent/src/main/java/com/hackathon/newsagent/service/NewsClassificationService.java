@@ -54,6 +54,7 @@ public class NewsClassificationService {
             classified.add(new ClassifiedArticleDto(
                     article.uri(),
                     article.title(),
+                    article.body(),
                     article.url(),
                     article.date(),
                     article.dateTime(),
