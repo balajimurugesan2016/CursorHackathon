@@ -43,7 +43,7 @@ public class ReasoningPipelineService {
         this.vesselAgentClient = vesselAgentClient;
     }
 
-    public ReasoningReportResponse buildReport(double radiusKm) {
+    public ReasoningReportResponse buildReport(double radiusNm) {
         AgentRunResponse news = newsAgentClient.fetchClassifiedNews();
         List<PlaceCatalogEntryDto> catalog = placeCatalogHttpClient.fetchCatalog();
         catalog = new ArrayList<>(catalog);
@@ -68,7 +68,7 @@ public class ReasoningPipelineService {
             List<VesselNearLocationDto> vesselBlocks = new ArrayList<>();
             Set<String> vesselSearchKeys = new LinkedHashSet<>();
 
-            double radius = radiusKm;
+            double radius = radiusNm;
 
             for (String placeName : mentions) {
                 Optional<ResolvedLocationDto> loc = locationsAgentClient.resolveLocationName(placeName);
@@ -99,7 +99,7 @@ public class ReasoningPipelineService {
             out.add(new ArticleReasoningDto(article, List.copyOf(mentions), resolved, vesselBlocks));
         }
 
-        return new ReasoningReportResponse(news.articleCount(), out, radiusKm);
+        return new ReasoningReportResponse(news.articleCount(), out, radiusNm);
     }
 
     private static String buildSearchText(ClassifiedArticleDto article) {

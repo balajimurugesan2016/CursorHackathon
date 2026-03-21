@@ -8,7 +8,7 @@ import java.util.List;
 public record VesselsNearbyDto(
         double latitude,
         double longitude,
-        double radiusKm,
+        double radiusNm,
         int vesselCount,
         List<VesselDto> vessels
 ) {

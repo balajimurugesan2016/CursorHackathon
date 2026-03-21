@@ -4,6 +4,7 @@ import com.hackathon.vesselagent.client.VesselApiClient;
 import com.hackathon.vesselagent.client.VesselApiUnavailableException;
 import com.hackathon.vesselagent.config.VesselSearchProperties;
 import com.hackathon.vesselagent.model.VesselDto;
+import com.hackathon.vesselagent.util.NauticalMiles;
 import com.hackathon.vesselagent.web.dto.VesselsNearbyResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,26 +30,28 @@ public class VesselAgentController {
     }
 
     /**
-     * Returns all vessels within {@code circle_radius} (km) of the given point, per mock service Haversine logic.
+     * Returns all vessels within the given radius of the point. Radius is in <strong>nautical miles</strong> (international NM);
+     * it is converted to kilometers for the mock service, which applies Haversine distance in km.
      *
      * @param latitude  WGS84 latitude in degrees
      * @param longitude WGS84 longitude in degrees
-     * @param radiusKm  search radius in kilometers (optional; default from {@code vessels.search.default-radius-km})
+     * @param radiusNm  search radius in nautical miles (optional; default from {@code vessels.search.default-radius-nm})
      */
     @GetMapping(value = "/vessels-nearby", produces = "application/json")
     public VesselsNearbyResponse vesselsNearby(
             @RequestParam("latitude") double latitude,
             @RequestParam("longitude") double longitude,
-            @RequestParam(value = "radiusKm", required = false) Double radiusKm
+            @RequestParam(value = "radiusNm", required = false) Double radiusNm
     ) {
         validateCoordinates(latitude, longitude);
-        double radius = radiusKm != null ? radiusKm : searchProperties.defaultRadiusKm();
-        if (radius <= 0 || Double.isNaN(radius) || Double.isInfinite(radius)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "radiusKm must be a positive finite number");
+        double radiusNautical = radiusNm != null ? radiusNm : searchProperties.defaultRadiusNm();
+        if (radiusNautical <= 0 || Double.isNaN(radiusNautical) || Double.isInfinite(radiusNautical)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "radiusNm must be a positive finite number");
         }
 
-        List<VesselDto> vessels = vesselApiClient.fetchVesselsInRadius(latitude, longitude, radius);
-        return new VesselsNearbyResponse(latitude, longitude, radius, vessels.size(), vessels);
+        double radiusKm = NauticalMiles.toKilometers(radiusNautical);
+        List<VesselDto> vessels = vesselApiClient.fetchVesselsInRadius(latitude, longitude, radiusKm);
+        return new VesselsNearbyResponse(latitude, longitude, radiusNautical, vessels.size(), vessels);
     }
 
     private static void validateCoordinates(double latitude, double longitude) {

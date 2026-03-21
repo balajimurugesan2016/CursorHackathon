@@ -31,27 +31,28 @@ public class ReasoningAgentController {
     /**
      * Runs the pipeline: classified news → catalog mention scan → locations-agent resolution → vessel-agent search.
      *
-     * @param radiusKm optional search radius in km for vessel lookups (defaults to {@code reasoning.pipeline.search-radius-km})
+     * @param radiusNm optional search radius in <strong>nautical miles</strong> for vessel lookups
+     *                 (defaults to {@code reasoning.pipeline.search-radius-nm})
      */
     @GetMapping(value = "/reasoning-report", produces = "application/json")
     public ReasoningReportResponse reasoningReport(
-            @RequestParam(value = "radiusKm", required = false) Double radiusKm
+            @RequestParam(value = "radiusNm", required = false) Double radiusNm
     ) {
-        double radius = radiusKm != null ? radiusKm : pipelineProperties.searchRadiusKm();
+        double radius = radiusNm != null ? radiusNm : pipelineProperties.searchRadiusNm();
         validateRadius(radius);
         return pipelineService.buildReport(radius);
     }
 
     private void validateRadius(double radius) {
         if (Double.isNaN(radius) || Double.isInfinite(radius)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "radiusKm must be a finite number");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "radiusNm must be a finite number");
         }
-        double min = pipelineProperties.minRadiusKm();
-        double max = pipelineProperties.maxRadiusKm();
+        double min = pipelineProperties.minRadiusNm();
+        double max = pipelineProperties.maxRadiusNm();
         if (radius < min || radius > max) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "radiusKm must be between " + min + " and " + max
+                    "radiusNm must be between " + min + " and " + max
             );
         }
     }

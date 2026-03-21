@@ -46,7 +46,8 @@ export interface VesselNearLocationDto {
   anchorMatchedName: string;
   latitude: number;
   longitude: number;
-  radiusKm: number;
+  /** Search radius in nautical miles (international NM). */
+  radiusNm: number;
   vesselCount: number;
   vessels: VesselDto[];
 }
@@ -61,8 +62,8 @@ export interface ArticleReasoningDto {
 export interface ReasoningReportResponse {
   articleCount: number;
   articles: ArticleReasoningDto[];
-  /** Radius in km used for vessel-agent searches on this run. */
-  searchRadiusKm: number;
+  /** Radius in nautical miles used for vessel-agent searches on this run. */
+  searchRadiusNm: number;
 }
 
 export interface ErrorBody {

@@ -18,12 +18,12 @@ public class VesselAgentClient {
         this.props = props;
     }
 
-    public VesselsNearbyDto fetchVesselsNearby(double latitude, double longitude, double radiusKm) {
+    public VesselsNearbyDto fetchVesselsNearby(double latitude, double longitude, double radiusNm) {
         String uri = UriComponentsBuilder.fromUriString(props.vesselAgentBaseUrl())
                 .path("/api/agent/vessels-nearby")
                 .queryParam("latitude", latitude)
                 .queryParam("longitude", longitude)
-                .queryParam("radiusKm", radiusKm)
+                .queryParam("radiusNm", radiusNm)
                 .build()
                 .toUriString();
         try {

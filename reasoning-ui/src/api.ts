@@ -2,9 +2,9 @@ import type { ReasoningReportResponse } from "./types";
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
 
-export async function fetchReasoningReport(radiusKm: number): Promise<ReasoningReportResponse> {
+export async function fetchReasoningReport(radiusNm: number): Promise<ReasoningReportResponse> {
   const params = new URLSearchParams();
-  params.set("radiusKm", String(radiusKm));
+  params.set("radiusNm", String(radiusNm));
   const res = await fetch(`${API_BASE}/api/agent/reasoning-report?${params.toString()}`, {
     headers: { Accept: "application/json" },
   });

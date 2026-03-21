@@ -68,11 +68,13 @@ Quick checks:
 curl -sf "http://localhost:8082/api/v1/places" | head -c 80 && echo
 curl -sf "http://localhost:8090/api/agent/classified-news" | head -c 80 && echo
 curl -sf "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City" | head -c 80 && echo
-curl -sf "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusKm=50" | head -c 80 && echo
+curl -sf "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusNm=27" | head -c 80 && echo
 curl -sf "http://localhost:8093/api/agent/reasoning-report" | head -c 80 && echo
 ```
 
-**reasoning-agent note:** `catalogMentions` is filled only when a **catalog place name** appears in an article’s **title or body** (substring match). Many mock articles mention cities in the title but not the full catalog string in the body, so **zero mentions** for an article is normal. Vessel lists can be **empty** if no mock ships fall within `reasoning.pipeline.search-radius-km` of a resolved point.
+**reasoning-agent note:** `catalogMentions` is filled only when a **catalog place name** appears in an article’s **title or body** (substring match). Many mock articles mention cities in the title but not the full catalog string in the body, so **zero mentions** for an article is normal. Vessel lists can be **empty** if no mock ships fall within `reasoning.pipeline.search-radius-nm` (nautical miles) of a resolved point.
+
+**Units:** Vessel search radii are in **international nautical miles** (NM). **1 NM = 1852 m = 1.852 km** exactly. Agents convert NM → km when calling the mock Haversine API; that factor is fixed, so **no external conversion API is required**. For general-purpose or non-SI unit handling in production, **UCUM** ([ucum.org](https://ucum.org)) and Java **javax.measure** / **Indriya** are common choices.
 
 ---
 
@@ -200,16 +202,16 @@ cd agents/vessel-agent && mvn spring-boot:run
 | `vessels.api.base-url` | `http://localhost:8082` | Mock service base URL |
 | `vessels.api.path` | `/api/vessels_operations/get-vessels-by-area` | Vessel search (`POST`) |
 | `server.port` | `8092` | Agent port |
-| `vessels.search.default-radius-km` | `100` | Used when `radiusKm` is omitted |
+| `vessels.search.default-radius-nm` | `54` | Default radius in **nautical miles** when `radiusNm` is omitted (~100 km) |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/vessels-nearby` | Query: `latitude`, `longitude`, optional `radiusKm` |
+| `GET` | `/api/agent/vessels-nearby` | Query: `latitude`, `longitude`, optional `radiusNm` (**nautical miles**) |
 
 ```bash
-curl -s "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusKm=50"
+curl -s "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusNm=27"
 ```
 
 Example response (truncated):
@@ -218,7 +220,7 @@ Example response (truncated):
 {
   "latitude": 45.05,
   "longitude": -8.9,
-  "radiusKm": 50.0,
+  "radiusNm": 27.0,
   "vesselCount": 4,
   "vessels": [
     {
@@ -234,7 +236,7 @@ Example response (truncated):
 }
 ```
 
-Invalid coordinates or non-positive `radiusKm`: **400**. Mock vessel API unreachable: **503** with `{ "message": "..." }`.
+Invalid coordinates or non-positive `radiusNm`: **400**. Mock vessel API unreachable: **503** with `{ "message": "..." }`.
 
 ### Build
 
@@ -251,7 +253,7 @@ cd agents/vessel-agent && mvn -q compile
 1. **news-agent** — `GET /api/agent/classified-news` (articles with **title**, **body**, risk **categories**).
 2. **Place mention scan** — loads `GET /api/v1/places` (mock) and finds catalog **place names** that appear as substrings in title + body (longest names checked first to reduce noise).
 3. **locations-agent** — for each distinct mention, `GET /api/agent/resolve-location?name=…` to obtain coordinates.
-4. **vessel-agent** — for each **unique** resolved coordinate, `GET /api/agent/vessels-nearby` with `reasoning.pipeline.search-radius-km` (deduplicates multiple place names that map to the same point).
+4. **vessel-agent** — for each **unique** resolved coordinate, `GET /api/agent/vessels-nearby` with `reasoning.pipeline.search-radius-nm` (nautical miles; deduplicates multiple place names that map to the same point).
 
 Requires **mockServices** plus **news**, **locations**, and **vessel** agents running. Returns **503** if any upstream HTTP call fails.
 
@@ -269,9 +271,9 @@ cd agents/reasoning-agent && mvn spring-boot:run
 | `reasoning.upstream.locations-agent-base-url` | `http://localhost:8091` | locations-agent |
 | `reasoning.upstream.vessel-agent-base-url` | `http://localhost:8092` | vessel-agent |
 | `reasoning.upstream.places-catalog-url` | `http://localhost:8082/api/v1/places` | Mock catalog for substring mention detection |
-| `reasoning.pipeline.search-radius-km` | `100` | Default vessel search radius (km) when `?radiusKm` is omitted |
-| `reasoning.pipeline.min-radius-km` | `1` | Minimum allowed `radiusKm` query value |
-| `reasoning.pipeline.max-radius-km` | `500` | Maximum allowed `radiusKm` query value |
+| `reasoning.pipeline.search-radius-nm` | `54` | Default vessel search radius (**NM**) when `?radiusNm` is omitted (~100 km) |
+| `reasoning.pipeline.min-radius-nm` | `1` | Minimum allowed `radiusNm` |
+| `reasoning.pipeline.max-radius-nm` | `270` | Maximum allowed `radiusNm` (~500 km) |
 | `server.port` | `8093` | reasoning-agent port |
 
 ### HTTP API
@@ -279,14 +281,14 @@ cd agents/reasoning-agent && mvn spring-boot:run
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/agent/reasoning-report` | Full pipeline JSON |
-| `GET` | `/api/agent/reasoning-report?radiusKm=150` | Same, with vessel search radius in km (validated against min/max; forwarded to vessel-agent) |
+| `GET` | `/api/agent/reasoning-report?radiusNm=100` | Same, with vessel search radius in **nautical miles** (validated against min/max; forwarded to vessel-agent) |
 
 ```bash
 curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.tool
-curl -s "http://localhost:8093/api/agent/reasoning-report?radiusKm=200" | python3 -m json.tool
+curl -s "http://localhost:8093/api/agent/reasoning-report?radiusNm=100" | python3 -m json.tool
 ```
 
-The response includes **`searchRadiusKm`**: the radius actually used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusKm`**).
+The response includes **`searchRadiusNm`**: the radius in **NM** used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusNm`**).
 
 ### Web UI (React)
 

@@ -3,10 +3,10 @@ import { fetchReasoningReport } from "./api";
 import type { ArticleReasoningDto, ReasoningReportResponse } from "./types";
 import "./App.css";
 
-/** Keep in sync with reasoning.pipeline defaults in application.properties */
+/** Keep in sync with reasoning.pipeline.*-nm in application.properties (nautical miles) */
 const RADIUS_MIN = 1;
-const RADIUS_MAX = 500;
-const RADIUS_DEFAULT = 100;
+const RADIUS_MAX = 270;
+const RADIUS_DEFAULT = 54;
 
 function pct(n: number): string {
   return `${Math.round(n * 1000) / 10}%`;
@@ -135,7 +135,7 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
               <div key={`${block.anchorMatchedName}-${block.latitude}`} className="vessel-block">
                 <div className="vessel-block-title">{block.anchorMatchedName}</div>
                 <div className="vessel-block-sub">
-                  {block.vesselCount} vessel(s) within {block.radiusKm} km ·{" "}
+                  {block.vesselCount} vessel(s) within {block.radiusNm} NM ·{" "}
                   {block.latitude.toFixed(4)}, {block.longitude.toFixed(4)}
                 </div>
                 {block.vessels?.length ? (
@@ -165,13 +165,13 @@ export default function App() {
   const [data, setData] = useState<ReasoningReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [radiusKm, setRadiusKm] = useState(RADIUS_DEFAULT);
+  const [radiusNm, setRadiusNm] = useState(RADIUS_DEFAULT);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetchReasoningReport(radiusKm);
+      const r = await fetchReasoningReport(radiusNm);
       setData(r);
     } catch (e) {
       setData(null);
@@ -179,7 +179,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [radiusKm]);
+  }, [radiusNm]);
 
   const didInitialFetch = useRef(false);
   useEffect(() => {
@@ -198,12 +198,12 @@ export default function App() {
           <div className="hackathon-badge">Live pipeline</div>
           <h1 className="neon-title">Reasoning agent report</h1>
           <p className="subtitle">
-            Live view of <code>/api/agent/reasoning-report?radiusKm=…</code> — classified news, place
-            mentions, resolved coordinates, and nearby vessels (radius flows to vessel-agent).
+            Live view of <code>/api/agent/reasoning-report?radiusNm=…</code> — classified news, place
+            mentions, resolved coordinates, and nearby vessels (radius in <strong>NM</strong> to vessel-agent).
           </p>
           <div className="radius-panel" aria-label="Vessel search radius">
             <label className="radius-label" htmlFor="radius-range">
-              Vessel search radius
+              Vessel search radius (nautical miles)
             </label>
             <div className="radius-row">
               <input
@@ -213,8 +213,8 @@ export default function App() {
                 min={RADIUS_MIN}
                 max={RADIUS_MAX}
                 step={1}
-                value={radiusKm}
-                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                value={radiusNm}
+                onChange={(e) => setRadiusNm(Number(e.target.value))}
               />
               <input
                 className="radius-input"
@@ -222,18 +222,19 @@ export default function App() {
                 min={RADIUS_MIN}
                 max={RADIUS_MAX}
                 step={1}
-                value={radiusKm}
+                value={radiusNm}
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   if (!Number.isFinite(v)) return;
-                  setRadiusKm(Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, Math.round(v))));
+                  setRadiusNm(Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, Math.round(v))));
                 }}
-                aria-label="Radius in kilometers"
+                aria-label="Radius in nautical miles"
               />
-              <span className="radius-unit">km</span>
+              <span className="radius-unit">NM</span>
             </div>
             <p className="radius-hint">
-              Allowed: {RADIUS_MIN}–{RADIUS_MAX} km (see reasoning.pipeline on server).
+              International NM (1 NM = 1.852 km). Allowed: {RADIUS_MIN}–{RADIUS_MAX} NM (see reasoning.pipeline on
+              server).
             </p>
           </div>
         </div>
@@ -263,7 +264,7 @@ export default function App() {
         <>
           <p className="summary">
             <strong>{data.articleCount}</strong> article(s) · vessel search radius{" "}
-            <strong>{data.searchRadiusKm}</strong> km
+            <strong>{data.searchRadiusNm}</strong> NM
           </p>
           <div className="articles">
             {data.articles.map((row, index) => (

@@ -16,7 +16,7 @@ public record ArticleReasoningDto(
             String anchorMatchedName,
             double latitude,
             double longitude,
-            double radiusKm,
+            double radiusNm,
             int vesselCount,
             List<VesselDto> vessels
     ) {
