@@ -1,99 +1,155 @@
 # Agents
 
-This folder holds Spring Boot **agents** that call shared mock APIs in the repo and add reasoning or enrichment on top.
+This folder holds **Spring Boot agents** that sit on top of the shared mock APIs in [`../mockServices`](../mockServices) (`mockServices`). Each agent calls one or more HTTP endpoints on the mock service, then adds classification, resolution, or other logic and exposes its own JSON API.
+
+| Agent | Package | Port (default) | What it does |
+|-------|---------|----------------|--------------|
+| **news-agent** | `com.hackathon.newsagent` | **8090** | Fetches news articles, assigns **supply-chain risk categories** (lexicon-based, multi-label). |
+| **locations-agent** | `com.hackathon.locationsagent` | **8091** | Maps **place names → latitude/longitude** using the mock place catalog (exact, substring, token overlap, fuzzy). |
+
+The mock service must be running first (default **8082** — see `mockServices/src/main/resources/application.properties`). It exposes endpoints such as:
+
+- `POST /api/v1/article/getArticles` — articles JSON (used by news-agent)
+- `GET /api/v1/places` — full place catalog (used by locations-agent)
+
+---
+
+## Shared prerequisites
+
+- **Java 21**
+- **Maven** (or `./mvnw` from `mockServices` when the wrapper is configured)
+
+### Run the mock API first
+
+From the repository root:
+
+```bash
+cd mockServices && mvn spring-boot:run
+```
+
+Then start whichever agent(s) you need in **separate terminals** (see below).
+
+---
 
 ## news-agent
 
-Supply-chain **news classification** service. It pulls articles from the mock news API (`mockServices`), runs a weighted lexicon classifier over each headline and body, and returns **multi-label** risk categories with scores and matched keyword signals.
+Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, returns **multi-label** categories with scores and matched keyword signals.
 
-### Prerequisites
+### Run
 
-- **Java 21**
-- **Maven** (or use `./mvnw` from `mockServices` if configured)
-- The **mock news API** must be reachable (see [Run order](#run-order))
-
-### Run order
-
-From the **repository root** (`CursorHackathon/`):
-
-1. Start the mock API (default port **8082** — see `mockServices/src/main/resources/application.properties`):
-
-   ```bash
-   cd mockServices && mvn spring-boot:run
-   ```
-
-2. In another terminal, start the agent (default port **8090**):
-
-   ```bash
-   cd agents/news-agent && mvn spring-boot:run
-   ```
+```bash
+cd agents/news-agent && mvn spring-boot:run
+```
 
 ### Configuration
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `news.api.base-url` | `http://localhost:8082` | Base URL of the mock news service |
-| `news.api.path` | `/api/v1/article/getArticles` | Path for `POST` article fetch |
-| `server.port` | `8090` | Port for this agent |
-| `agent.classification.min-score` | `0.12` | Minimum category score (0–1) to include a label |
-| `agent.classification.max-categories-per-article` | `4` | Max categories returned per article |
-
-Override via `application.properties`, environment variables, or `SPRING_APPLICATION_JSON` as usual for Spring Boot.
+| `news.api.base-url` | `http://localhost:8082` | Mock service base URL |
+| `news.api.path` | `/api/v1/article/getArticles` | Article fetch path (`POST`) |
+| `server.port` | `8090` | Agent HTTP port |
+| `agent.classification.min-score` | `0.12` | Minimum category score (0–1) to keep a label |
+| `agent.classification.max-categories-per-article` | `4` | Max categories per article |
 
 ### HTTP API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agent/classified-news` | Fetch articles from the news API and return classifications |
-
-Example:
+| `GET` | `/api/agent/classified-news` | Classify all articles from the news API |
 
 ```bash
 curl -s "http://localhost:8090/api/agent/classified-news" | python3 -m json.tool
 ```
 
-If the news API is down or unreachable, the agent responds with **503** and a JSON body `{ "message": "..." }`.
+If the news API is unreachable: **503** with `{ "message": "..." }`.
 
-### Response shape
+### Response (summary)
 
-- `articleCount` — number of articles returned by the news API
-- `articles[]` — each item includes `uri`, `title`, `url`, `date`, `dateTime`, and `categories[]`
-- Each category has:
+- `articleCount`, `articles[]` with `uri`, `title`, `url`, `date`, `dateTime`, `categories[]`
+- Each category: `categoryId`, `categoryLabel`, `categoryDescription`, `score`, `matchedSignals`
 
-  - `categoryId` — enum name (e.g. `INFRASTRUCTURE_LOGISTICS_DISRUPTIONS`)
-  - `categoryLabel` — human-readable title
-  - `categoryDescription` — short analyst-style description
-  - `score` — relative weight (0–1) among categories that matched for that article
-  - `matchedSignals` — keyword phrases that fired
-
-### Classification themes
-
-The agent maps text to **supply-chain risk** buckets such as:
-
-- Geopolitical unrest and security (shipping lanes, sanctions, maritime risk)
-- Trade policy and tariffs
-- Environmental and natural disasters
-- Infrastructure and logistics disruptions
-- Raw material and resource scarcity
-- Technology and cybersecurity
-- Corporate restructuring
-
-Rules live in `ArticleClassifier` (weighted terms). Tune or replace with an LLM or embedding model later without changing the REST contract.
+Classification themes include geopolitical risk, trade/tariffs, disasters, logistics disruption, raw materials, cyber, and corporate restructuring. Rules live in `ArticleClassifier`.
 
 ### Build
 
 ```bash
-cd agents/news-agent
-mvn -q compile
-mvn -q test
+cd agents/news-agent && mvn -q compile
 ```
 
-### Project layout
+---
+
+## locations-agent
+
+**Location name → coordinates** against the mock catalog (`GET /api/v1/places`). Matching order: **exact** normalized name, **substring** containment, **token overlap** (Jaccard), **Levenshtein**-style fuzzy score. Responses include `matchKind` (`EXACT`, `CONTAINS`, `TOKEN_OVERLAP`, `FUZZY`) and `confidence` (0–1).
+
+### Run
+
+```bash
+cd agents/locations-agent && mvn spring-boot:run
+```
+
+### Configuration
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| `locations.api.base-url` | `http://localhost:8082` | Mock service base URL |
+| `locations.api.catalog-path` | `/api/v1/places` | Catalog listing (`GET`) |
+| `server.port` | `8091` | Agent HTTP port |
+| `locations.resolve.min-confidence` | `0.55` | Minimum score to accept a non-exact match |
+
+### HTTP API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/agent/resolve-location?name=...` | Single lookup; **404** if no match |
+| `POST` | `/api/agent/resolve-locations` | Body: `{ "queries": ["…"] }` — each entry may have `resolved: null` |
+| `POST` | `/api/agent/refresh-catalog` | Reload catalog from the mock service |
+
+Examples:
+
+```bash
+# Exact match (illustrative)
+curl -s "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City"
+
+# Batch: mix of hits and misses
+curl -s "http://localhost:8091/api/agent/resolve-locations" \
+  -H "Content-Type: application/json" \
+  -d '{"queries":["Strait of Hormuz","Panama","NowhereLandXYZ123"]}'
+```
+
+Sample **single** response shape:
+
+```json
+{
+  "query": "Dubai City",
+  "matchedName": "Dubai City",
+  "placeType": "CITY",
+  "latitude": 25.26,
+  "longitude": 55.3,
+  "matchKind": "EXACT",
+  "confidence": 1.0
+}
+```
+
+If the catalog cannot be loaded: **503** with `{ "message": "..." }`.
+
+### Build
+
+```bash
+cd agents/locations-agent && mvn -q compile
+```
+
+---
+
+## Project layout
 
 ```
 agents/
-├── readme.md          # this file
-└── news-agent/        # Spring Boot app (com.hackathon.newsagent)
+├── readme.md
+├── news-agent/
+│   ├── pom.xml
+│   └── src/main/java/com/hackathon/newsagent/...
+└── locations-agent/
     ├── pom.xml
-    └── src/main/java/...
+    └── src/main/java/com/hackathon/locationsagent/...
 ```
