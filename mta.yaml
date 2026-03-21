@@ -7,7 +7,7 @@
 _schema-version: 3.3.0
 ID: cursorhackathon
 version: 1.0.0
-description: "Mock APIs, enterprise master data, Spring Boot agents, React UI"
+description: "Mock APIs, enterprise master data, Spring Boot agents, frontend (React)"
 
 parameters:
   enable-parallel-deployments: true
@@ -85,10 +85,10 @@ modules:
       memory: 512M
       disk-quota: 512M
 
-  # --- Static UI (Vite build). For SAP HTML5 repo deploy; on CF you may switch to staticfile/nodejs + approuter.
-  - name: reasoning-ui
+  # --- Primary UI (Vite build). Optional dev-only harness: reasoning-ui/ (not an MTA module).
+  - name: frontend
     type: html5
-    path: reasoning-ui
+    path: frontend
     build-parameters:
       builder: npm
       build-result: dist

@@ -2,7 +2,7 @@
 
 ## Architecture
 
-High-level view of how the **CursorHackathon** stack fits together: shared mock APIs and enterprise master data, specialized agents, orchestration, and the React UI. Ports are **local defaults** (see [Port map](#port-map-local-defaults) below).
+High-level view of how the **CursorHackathon** stack fits together: shared mock APIs and enterprise master data, specialized agents, orchestration, and the React UI. The **primary** user-facing app is **`frontend/`** (Vite + React). **`reasoning-ui/`** is a **small test harness** for manually hitting agent APIs during development (not the product UI). Ports are **local defaults** (see [Port map](#port-map-local-defaults) below).
 
 ```mermaid
 flowchart TB
@@ -10,8 +10,8 @@ flowchart TB
     B["Browser"]
   end
 
-  subgraph UI["reasoning-ui — :5173"]
-    Vite["Vite dev server\nproxies /api"]
+  subgraph UI["frontend — :5173"]
+    Vite["Vite dev server\n(configure API / proxy to agents)"]
   end
 
   subgraph Mock["mockServices — :8082"]
@@ -49,7 +49,7 @@ flowchart TB
 
 ### UML (component & dependency view)
 
-Same stack as a **UML-style** diagram: each box is a deployable **component** (Spring Boot app or static UI); arrows are **HTTP** dependencies (clients call servers). Stereotypes note default ports.
+Same stack as a **UML-style** diagram: each box is a deployable **component** (Spring Boot app or static UI); arrows are **HTTP** dependencies (clients call servers). Stereotypes note default ports. The browser app shown here is **`frontend`**; **`reasoning-ui`** is omitted (same pattern, test-only).
 
 ```mermaid
 classDiagram
@@ -90,14 +90,14 @@ classDiagram
     portfolio risk facade
   }
 
-  class ReasoningUi {
+  class Frontend {
     <<component>>
     port 5173
-    Vite + React
+    main React UI
   }
 
-  ReasoningUi ..> ReasoningAgent : dev proxy /api
-  ReasoningUi ..> SupplyChainRiskAgent : dev proxy risk path
+  Frontend ..> ReasoningAgent : HTTP /api
+  Frontend ..> SupplyChainRiskAgent : HTTP /api
 
   ReasoningAgent ..> NewsAgent
   ReasoningAgent ..> LocationsAgent
@@ -116,13 +116,13 @@ classDiagram
 
 ### UML (sequence): supply-chain risk report
 
-Typical flow for **GET** `/api/agent/supply-chain-risk-report` (optional `radiusNm`) from **reasoning-ui** via the Vite dev proxy. Implementation order in [`SupplyChainRiskService#buildReport`](supply-chain-risk-agent/src/main/java/com/hackathon/supplychainrisk/service/SupplyChainRiskService.java): **reasoning** report first, then **enterprise** plant list and **per-plant** detail, then **in-process** analysis. The **reasoning** block mirrors [`ReasoningPipelineService`](reasoning-agent/src/main/java/com/hackathon/reasoningagent/service/ReasoningPipelineService.java) (news → catalog → per-mention resolve → vessels).
+Typical flow for **GET** `/api/agent/supply-chain-risk-report` (optional `radiusNm`) from the **browser** via **`frontend`** (or the optional **`reasoning-ui`** test harness with a dev proxy). Implementation order in [`SupplyChainRiskService#buildReport`](supply-chain-risk-agent/src/main/java/com/hackathon/supplychainrisk/service/SupplyChainRiskService.java): **reasoning** report first, then **enterprise** plant list and **per-plant** detail, then **in-process** analysis. The **reasoning** block mirrors [`ReasoningPipelineService`](reasoning-agent/src/main/java/com/hackathon/reasoningagent/service/ReasoningPipelineService.java) (news → catalog → per-mention resolve → vessels).
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor User
-  participant UI as reasoning-ui
+  participant UI as frontend
   participant SCR as supply-chain-risk-agent
   participant RA as reasoning-agent
   participant NA as news-agent
@@ -168,7 +168,7 @@ sequenceDiagram
   UI-->>User: render risk panel
 ```
 
-**Reading the diagram:** **reasoning-agent** orchestrates **news**, **locations**, and **vessel** agents and reads **mockServices** directly where needed. **supply-chain-risk-agent** composes **enterpriseservice** master data with a **reasoning** report for portfolio-style risk. **reasoning-ui** talks only to agents via the dev proxy (not to mock or enterprise APIs directly). **enterpriseservice** uses **mockServices** for orchestration snapshots (e.g. news/vessels near coordinates).
+**Reading the diagram:** **reasoning-agent** orchestrates **news**, **locations**, and **vessel** agents and reads **mockServices** directly where needed. **supply-chain-risk-agent** composes **enterpriseservice** master data with a **reasoning** report for portfolio-style risk. **frontend** (and the optional **reasoning-ui** test harness) call **agents** over HTTP — not **mockServices** or **enterpriseservice** directly. **enterpriseservice** uses **mockServices** for orchestration snapshots (e.g. news/vessels near coordinates).
 
 ---
 
@@ -224,7 +224,8 @@ cd mockServices && mvn spring-boot:run
 | **8092** | vessel-agent |
 | **8093** | reasoning-agent |
 | **8094** | supply-chain-risk-agent |
-| **5173** | [`reasoning-ui`](../reasoning-ui) (Vite dev server; proxies `/api` → reasoning) |
+| **5173** | [`frontend`](../frontend) (main UI; Vite default port) |
+| **5173** | [`reasoning-ui`](../reasoning-ui) (optional **test harness** for agent APIs — same default port; run only one of `frontend` / `reasoning-ui` or use a different port, e.g. `npm run dev -- --port 5174`) |
 
 Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it. **supply-chain-risk-agent** additionally needs **[`enterpriseservice`](../enterpriseservice)** on **8085** and **reasoning-agent** on **8093**.
 
@@ -240,8 +241,10 @@ cd agents/locations-agent && mvn spring-boot:run
 cd agents/vessel-agent && mvn spring-boot:run
 cd agents/reasoning-agent && mvn spring-boot:run
 cd agents/supply-chain-risk-agent && mvn spring-boot:run
-cd reasoning-ui && npm install && npm run dev
+cd frontend && npm install && npm run dev
 ```
+
+Optional — **agent test harness** only (not the product UI): `cd reasoning-ui && npm install && npm run dev` (stop **frontend** first or use another port).
 
 Quick checks:
 
@@ -474,13 +477,15 @@ The response includes **`searchRadiusNm`**: the radius in **NM** used for vessel
 
 ### Web UI (React)
 
-A Vite + React dashboard in [`../reasoning-ui`](../reasoning-ui) (repo root) calls the same report. With **reasoning-agent** on **8093** and **Node.js** installed:
+The main app is [`../frontend`](../frontend) (Riscon dashboard). To exercise this agent from the browser, configure your API base URL (or a dev proxy) to **`http://localhost:8093`**.
+
+For **manual testing** only, [`../reasoning-ui`](../reasoning-ui) is a thin Vite app that **proxies** `/api` to the reasoning agent:
 
 ```bash
 cd reasoning-ui && npm install && npm run dev
 ```
 
-Open **http://localhost:5173** — the dev server **proxies** `/api` to `http://localhost:8093`. For `npm run preview` after a production build, either set **`VITE_API_BASE=http://localhost:8093`** when building, or rely on **CORS** (allowed for localhost ports **5173** and **4173** on the reasoning agent).
+Open **http://localhost:5173** (do not run alongside **frontend** on the same port, or use `--port`). For `npm run preview` after a production build, either set **`VITE_API_BASE=http://localhost:8093`** when building, or rely on **CORS** (allowed for localhost ports **5173** and **4173** on the reasoning agent).
 
 ### Build
 
@@ -502,7 +507,7 @@ Combines **[`enterpriseservice`](../enterpriseservice)** master data with the **
 
 Returns JSON: **`portfolioRiskScore`**, **`portfolioDisturbanceCertainty`**, **`portfolioDisturbanceRationale`**, **`portfolioEstimatedHoursToImpact`**, **`portfolioRationale`**, **`plants[]`** with per-plant and per-supplier **`disturbanceCertainty`**, **`estimatedHoursToImpact`**, **`riskScore`**, and **`signals`**.
 
-**reasoning-ui** in dev uses **same-origin** `/api/...` and the Vite proxy: **`/api/agent/supply-chain-risk-report` → 8094** (listed **before** `/api` → 8093 so the longer path matches first). `vite preview` has no proxy — set **`VITE_SUPPLY_RISK_BASE=http://localhost:8094`** at build, or rely on the UI fallback to 8094 for localhost:4173 (CORS on the agent). **`VITE_SUPPLY_RISK_BASE`** overrides the base URL when set.
+The optional **[`reasoning-ui`](../reasoning-ui)** test harness in dev uses **same-origin** `/api/...` and the Vite proxy: **`/api/agent/supply-chain-risk-report` → 8094** (listed **before** `/api` → 8093 so the longer path matches first). **`frontend`** should call agents with explicit base URLs or your platform’s approuter. `vite preview` has no proxy — set **`VITE_SUPPLY_RISK_BASE=http://localhost:8094`** when building **reasoning-ui**, or rely on the UI fallback to 8094 for localhost:4173 (CORS on the agent). **`VITE_SUPPLY_RISK_BASE`** overrides the base URL when set.
 
 ### Run
 
