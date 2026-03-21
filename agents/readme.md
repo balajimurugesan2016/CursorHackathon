@@ -267,7 +267,7 @@ curl -sf "http://localhost:8094/api/agent/supply-chain-risk-report" | head -c 80
 
 ## news-agent
 
-Supply-chain **news classification**: pulls articles from the mock news API, runs a weighted lexicon over title + body, and returns the **top categories by score** (up to four), each with a **probability** (`score`, normalized within the article). A short **`summary`** line combines those leading themes with an excerpt of the article. Each article still includes **`body`** so downstream agents (e.g. reasoning-agent) can extract geography.
+Supply-chain **news classification** using **LangChain4j** and **Claude Haiku**: pulls articles from the mock news API, fetches cities from location-service, and classifies each article via AI into supply-chain risk topics. Classification runs **concurrently** for all articles. Returns `title`, `locations` (array of where the news is happening, AI-extracted from body), and `topics` per article.
 
 ### Run
 
@@ -275,23 +275,16 @@ Supply-chain **news classification**: pulls articles from the mock news API, run
 cd agents/news-agent && mvn spring-boot:run
 ```
 
+**Required:** `ANTHROPIC_API_KEY` environment variable for Claude Haiku.
+
 ### Configuration
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `news.api.base-url` | `http://localhost:8082` | Mock service base URL |
-| `news.api.path` | `/api/v1/article/getArticles` | Article fetch (`POST`) |
+| `news.mock-services-url` | `http://localhost:8082` | Mock service base URL |
+| `news.location-service-url` | `http://localhost:8095` | Location service base URL |
 | `server.port` | `8090` | Agent port |
-| `agent.classification.min-score` | `0.12` | Reserved for future filtering (ranking uses top scores regardless) |
-| `agent.classification.max-categories-per-article` | `4` | Cap on how many top-scoring categories are returned (up to **4**) |
-| `agent.schedule.enabled` | `true` | When `true`, runs the same pipeline as `/classified-news` on a timer (keeps mock news pulled regularly for downstream agents). |
-| `agent.schedule.initial-delay-ms` | `3000` | Delay after startup before the first scheduled run (demo-friendly). |
-| `agent.schedule.fixed-delay-ms` | `15000` | Delay after each run **finishes** before the next (default **15 seconds** for demos). |
-| `agent.pipeline.enabled` | `true` | After each scheduled run, **GET** reasoning-agent `/api/agent/reasoning-report` then **GET** supply-chain-risk `/api/agent/supply-chain-risk-report` so reasoning → simulation (and the UI) stay warm. |
-| `agent.pipeline.reasoning-base-url` | `http://localhost:8093` | Reasoning agent base URL for the cascade. |
-| `agent.pipeline.simulation-base-url` | `http://localhost:8094` | Supply-chain-risk (simulation) agent base URL. |
-| `agent.pipeline.connect-timeout-ms` | `10000` | HTTP connect timeout for cascade GETs. |
-| `agent.pipeline.read-timeout-ms` | `120000` | HTTP read timeout for cascade GETs (simulation can be slow). |
+| `ANTHROPIC_API_KEY` | (env) | Anthropic API key for Claude Haiku |
 
 ### HTTP API
 
@@ -303,14 +296,13 @@ cd agents/news-agent && mvn spring-boot:run
 curl -s "http://localhost:8090/api/agent/classified-news" | python3 -m json.tool
 ```
 
-If the news API is unreachable: **503** with `{ "message": "..." }`.
+If the news API or location service is unreachable: **503** with `{ "message": "..." }`.
 
 ### Response (summary)
 
-- `articleCount`, `articles[]` with `uri`, `title`, **`body`**, **`summary`**, `url`, `date`, `dateTime`, `categories[]`, `shippingRouteImpact`
-- `categories[]`: up to **four** highest-probability labels; each has `categoryId`, `categoryLabel`, `categoryDescription`, `score`, `matchedSignals`
-
-Themes include geopolitical risk, trade/tariffs, disasters, logistics disruption, raw materials, cyber, and corporate restructuring. Rules live in `ArticleClassifier`.
+- `articleCount`, `articles[]` with `uri`, `title`, **`locations`**, **`topics`**
+- `locations`: array of where the news is happening (AI-extracted from article body; multiple per article)
+- `topics`: one or more of: Geopolitical Unrest & Security, Trade Policy and Tariffs, Environmental & Natural Disasters, Infrastructure & Logistics Disruptions, Raw Material & Resource Scarcity, Technology & Cybersecurity, Corporate Restructuring
 
 ### Build
 
