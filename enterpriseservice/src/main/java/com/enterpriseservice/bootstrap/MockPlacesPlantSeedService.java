@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Seeds {@link Plant} rows from {@code classpath:mock_places.json} when the plant table is empty,
- * so GET /api/v1/plants reflects the same geography mock data as {@code mockServices}.
+ * Seeds {@link Plant} rows from {@code classpath:mock_plants.json} when the plant table is empty.
+ * Mock plant data uses city locations (no chokepoints), mostly in Europe.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,32 +25,35 @@ public class MockPlacesPlantSeedService {
 	private final PlantRepo plantRepo;
 	private final JsonMapper jsonMapper;
 
-	@Value("classpath:mock_places.json")
-	private Resource mockPlacesResource;
+	@Value("classpath:mock_plants.json")
+	private Resource mockPlantsResource;
 
 	@Transactional
 	public void seedIfEmpty() throws IOException {
 		if (plantRepo.count() > 0) {
 			return;
 		}
-		if (!mockPlacesResource.exists()) {
+		if (!mockPlantsResource.exists()) {
 			return;
 		}
-		List<MockPlaceJson> places = jsonMapper.readValue(
-				mockPlacesResource.getInputStream(),
-				new TypeReference<List<MockPlaceJson>>() {
+		List<MockPlantJson> plants = jsonMapper.readValue(
+				mockPlantsResource.getInputStream(),
+				new TypeReference<List<MockPlantJson>>() {
 				});
 		List<Plant> batch = new ArrayList<>();
-		for (MockPlaceJson p : places) {
-			if (p.name() == null || p.name().isBlank()) {
+		for (MockPlantJson p : plants) {
+			if (p.plantName() == null || p.plantName().isBlank()) {
 				continue;
 			}
 			batch.add(Plant.builder()
-					.plantName(p.name())
-					.location(p.type() != null ? p.type() : "PLACE")
+					.plantName(p.plantName())
+					.location(p.location())
 					.latitude(p.latitude())
 					.longitude(p.longitude())
-					.status("ACTIVE")
+					.status(p.status() != null ? p.status() : "ACTIVE")
+					.capacityPct(p.capacityPct())
+					.totalLines(p.totalLines())
+					.linesActive(p.linesActive())
 					.build());
 		}
 		plantRepo.saveAll(batch);

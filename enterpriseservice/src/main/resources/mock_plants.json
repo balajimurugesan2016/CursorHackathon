@@ -1,0 +1,142 @@
+[
+  {
+    "plantName": "Rotterdam Assembly Plant",
+    "location": "Rotterdam",
+    "latitude": "51.924400",
+    "longitude": "4.477700",
+    "status": "ACTIVE",
+    "capacityPct": 65.0,
+    "totalLines": 4,
+    "linesActive": 4
+  },
+  {
+    "plantName": "Hamburg Manufacturing Center",
+    "location": "Hamburg",
+    "latitude": "53.551100",
+    "longitude": "9.993700",
+    "status": "ACTIVE",
+    "capacityPct": 67.5,
+    "totalLines": 6,
+    "linesActive": 5
+  },
+  {
+    "plantName": "Antwerp Production Facility",
+    "location": "Antwerp",
+    "latitude": "51.219400",
+    "longitude": "4.402500",
+    "status": "ACTIVE",
+    "capacityPct": 70.0,
+    "totalLines": 8,
+    "linesActive": 6
+  },
+  {
+    "plantName": "Piraeus Processing Plant",
+    "location": "Piraeus",
+    "latitude": "37.942000",
+    "longitude": "23.646200",
+    "status": "STANDBY",
+    "capacityPct": 72.5,
+    "totalLines": 10,
+    "linesActive": 10
+  },
+  {
+    "plantName": "Algeciras Distribution Hub",
+    "location": "Algeciras",
+    "latitude": "36.140800",
+    "longitude": "-5.452600",
+    "status": "MAINTENANCE",
+    "capacityPct": 75.0,
+    "totalLines": 4,
+    "linesActive": 3
+  },
+  {
+    "plantName": "Le Havre Fabrication Plant",
+    "location": "Le Havre",
+    "latitude": "49.494400",
+    "longitude": "0.107900",
+    "status": "ACTIVE",
+    "capacityPct": 77.5,
+    "totalLines": 6,
+    "linesActive": 4
+  },
+  {
+    "plantName": "Gothenburg Assembly Plant",
+    "location": "Gothenburg",
+    "latitude": "57.708900",
+    "longitude": "11.974600",
+    "status": "ACTIVE",
+    "capacityPct": 80.0,
+    "totalLines": 8,
+    "linesActive": 8
+  },
+  {
+    "plantName": "Oslo Manufacturing Center",
+    "location": "Oslo",
+    "latitude": "59.913900",
+    "longitude": "10.752200",
+    "status": "ACTIVE",
+    "capacityPct": 82.5,
+    "totalLines": 10,
+    "linesActive": 9
+  },
+  {
+    "plantName": "Genoa Production Facility",
+    "location": "Genoa",
+    "latitude": "44.405600",
+    "longitude": "8.946300",
+    "status": "STANDBY",
+    "capacityPct": 85.0,
+    "totalLines": 4,
+    "linesActive": 2
+  },
+  {
+    "plantName": "Barcelona Processing Plant",
+    "location": "Barcelona",
+    "latitude": "41.385100",
+    "longitude": "2.173400",
+    "status": "MAINTENANCE",
+    "capacityPct": 87.5,
+    "totalLines": 6,
+    "linesActive": 6
+  },
+  {
+    "plantName": "Valencia Distribution Hub",
+    "location": "Valencia",
+    "latitude": "39.469900",
+    "longitude": "-0.376300",
+    "status": "ACTIVE",
+    "capacityPct": 90.0,
+    "totalLines": 8,
+    "linesActive": 7
+  },
+  {
+    "plantName": "Lisbon Fabrication Plant",
+    "location": "Lisbon",
+    "latitude": "38.722300",
+    "longitude": "-9.139300",
+    "status": "ACTIVE",
+    "capacityPct": 92.5,
+    "totalLines": 10,
+    "linesActive": 8
+  },
+  {
+    "plantName": "Singapore City Assembly Plant",
+    "location": "Singapore City",
+    "latitude": "1.352100",
+    "longitude": "103.819800",
+    "status": "ACTIVE",
+    "capacityPct": 95.0,
+    "totalLines": 4,
+    "linesActive": 4
+  },
+  {
+    "plantName": "Shanghai Manufacturing Center",
+    "location": "Shanghai",
+    "latitude": "31.230400",
+    "longitude": "121.473700",
+    "status": "STANDBY",
+    "capacityPct": 97.5,
+    "totalLines": 6,
+    "linesActive": 5
+  }
+]
