@@ -67,6 +67,37 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
           )}
         </div>
 
+        {row.categoryRisks?.length ? (
+          <div className="category-risk-block">
+            <div className="section-label">Reasoned supply-chain risk by category</div>
+            <p className="category-risk-hint">
+              Combines the news score with geography, vessels, and shipping-route context.
+            </p>
+            <table className="risk-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>News score</th>
+                  <th>Risk factor</th>
+                  <th>Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {row.categoryRisks.map((cr) => (
+                  <tr key={cr.categoryId}>
+                    <td className="risk-cat">{cr.categoryLabel}</td>
+                    <td>{pct(cr.newsCategoryScore)}</td>
+                    <td>
+                      <strong>{pct(cr.riskFactor)}</strong>
+                    </td>
+                    <td className="risk-rationale">{cr.rationale}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
         {a.body ? (
           <div>
             <div className="section-label">Full article text</div>
