@@ -1,5 +1,177 @@
 # Agents
 
+## Architecture
+
+High-level view of how the **CursorHackathon** stack fits together: shared mock APIs and enterprise master data, specialized agents, orchestration, and the React UI. Ports are **local defaults** (see [Port map](#port-map-local-defaults) below).
+
+```mermaid
+flowchart TB
+  subgraph Client["Client"]
+    B["Browser"]
+  end
+
+  subgraph UI["reasoning-ui — :5173"]
+    Vite["Vite dev server\nproxies /api"]
+  end
+
+  subgraph Mock["mockServices — :8082"]
+    M["Articles, places, vessels\n(shared mock HTTP APIs)"]
+  end
+
+  subgraph Ent["enterpriseservice — :8085"]
+    E["Plants, suppliers, shipments\norchestration snapshot → mock"]
+  end
+
+  subgraph Agents["Spring Boot agents"]
+    N["news-agent — :8090"]
+    L["locations-agent — :8091"]
+    V["vessel-agent — :8092"]
+    R["reasoning-agent — :8093"]
+    S["supply-chain-risk-agent — :8094"]
+  end
+
+  B --> Vite
+  Vite -->|"/api/agent/supply-chain-risk-report"| S
+  Vite -->|"/api/* (other)"| R
+
+  R --> N
+  R --> L
+  R --> V
+  R --> M
+  N --> M
+  L --> M
+  V --> M
+
+  S --> E
+  S --> R
+  E --> M
+```
+
+### UML (component & dependency view)
+
+Same stack as a **UML-style** diagram: each box is a deployable **component** (Spring Boot app or static UI); arrows are **HTTP** dependencies (clients call servers). Stereotypes note default ports.
+
+```mermaid
+classDiagram
+  direction TB
+
+  class MockServices {
+    <<component>>
+    port 8082
+    shared REST APIs
+  }
+
+  class EnterpriseService {
+    <<component>>
+    port 8085
+    master data + orchestration
+  }
+
+  class NewsAgent {
+    <<component>>
+    port 8090
+  }
+  class LocationsAgent {
+    <<component>>
+    port 8091
+  }
+  class VesselAgent {
+    <<component>>
+    port 8092
+  }
+  class ReasoningAgent {
+    <<component>>
+    port 8093
+    orchestration facade
+  }
+  class SupplyChainRiskAgent {
+    <<component>>
+    port 8094
+    portfolio risk facade
+  }
+
+  class ReasoningUi {
+    <<component>>
+    port 5173
+    Vite + React
+  }
+
+  ReasoningUi ..> ReasoningAgent : dev proxy /api
+  ReasoningUi ..> SupplyChainRiskAgent : dev proxy risk path
+
+  ReasoningAgent ..> NewsAgent
+  ReasoningAgent ..> LocationsAgent
+  ReasoningAgent ..> VesselAgent
+  ReasoningAgent ..> MockServices
+
+  NewsAgent ..> MockServices
+  LocationsAgent ..> MockServices
+  VesselAgent ..> MockServices
+
+  SupplyChainRiskAgent ..> EnterpriseService
+  SupplyChainRiskAgent ..> ReasoningAgent
+
+  EnterpriseService ..> MockServices
+```
+
+### UML (sequence): supply-chain risk report
+
+Typical flow for **GET** `/api/agent/supply-chain-risk-report` (optional `radiusNm`) from **reasoning-ui** via the Vite dev proxy. Implementation order in [`SupplyChainRiskService#buildReport`](supply-chain-risk-agent/src/main/java/com/hackathon/supplychainrisk/service/SupplyChainRiskService.java): **reasoning** report first, then **enterprise** plant list and **per-plant** detail, then **in-process** analysis. The **reasoning** block mirrors [`ReasoningPipelineService`](reasoning-agent/src/main/java/com/hackathon/reasoningagent/service/ReasoningPipelineService.java) (news → catalog → per-mention resolve → vessels).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant UI as reasoning-ui
+  participant SCR as supply-chain-risk-agent
+  participant RA as reasoning-agent
+  participant NA as news-agent
+  participant LA as locations-agent
+  participant VA as vessel-agent
+  participant ENT as enterpriseservice
+  participant MOCK as mockServices
+
+  User->>UI: request supply-chain risk report
+  UI->>SCR: GET /api/agent/supply-chain-risk-report
+  Note over SCR: fetch reasoning report first
+  SCR->>RA: GET /api/agent/reasoning-report
+
+  rect rgb(245, 245, 252)
+    Note over RA, MOCK: Reasoning pipeline (simplified)
+    RA->>NA: GET /api/agent/classified-news
+    NA->>MOCK: POST /api/v1/article/getArticles
+    MOCK-->>NA: articles JSON
+    NA-->>RA: classified articles
+    RA->>MOCK: GET /api/v1/places
+    MOCK-->>RA: place catalog
+    loop each article, mentions, and distinct lat/lon
+      RA->>LA: GET /api/agent/resolve-location?name=…
+      LA->>MOCK: read place catalog / match
+      MOCK-->>LA: place data
+      LA-->>RA: ResolvedLocationDto
+      RA->>VA: GET /api/agent/vessels-nearby?…
+      VA->>MOCK: POST /api/vessels_operations/get-vessels-by-area
+      MOCK-->>VA: vessels in radius
+      VA-->>RA: VesselsNearbyDto
+    end
+  end
+  RA-->>SCR: ReasoningReportResponse
+
+  SCR->>ENT: GET /api/v1/plants
+  ENT-->>SCR: plant summaries
+  loop each plant id from list
+    SCR->>ENT: GET /api/v1/plants/{id}
+    ENT-->>SCR: plant detail (suppliers, coords, …)
+  end
+  Note over SCR: SupplyChainRiskAnalyzer.analyze(...)
+  SCR-->>UI: SupplyChainRiskReportResponse (JSON)
+  UI-->>User: render risk panel
+```
+
+**Reading the diagram:** **reasoning-agent** orchestrates **news**, **locations**, and **vessel** agents and reads **mockServices** directly where needed. **supply-chain-risk-agent** composes **enterpriseservice** master data with a **reasoning** report for portfolio-style risk. **reasoning-ui** talks only to agents via the dev proxy (not to mock or enterprise APIs directly). **enterpriseservice** uses **mockServices** for orchestration snapshots (e.g. news/vessels near coordinates).
+
+---
+
 This folder holds **Spring Boot agents** that sit on top of the shared mock APIs in [`../mockServices`](../mockServices) (`mockServices`). Each agent calls HTTP endpoints on the mock service and exposes its own JSON API.
 
 **Deployment:** The repo root includes an SAP **MTA** descriptor — [`../mta.yaml`](../mta.yaml) and [`../MTA.md`](../MTA.md) (build with `mbt build` → `.mtar`).
