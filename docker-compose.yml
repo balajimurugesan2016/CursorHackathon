@@ -50,6 +50,19 @@ services:
       - LOCATION_SERVICE_URL=http://location-service:8095
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 
+  probability-service:
+    build:
+      context: ./agents/probability-service
+      dockerfile: Dockerfile
+    ports:
+      - "8097:8097"
+    depends_on:
+      - news-agent
+      - ship-mobility-service
+    environment:
+      - NEWS_AGENT_URL=http://news-agent:8090
+      - SHIP_MOBILITY_URL=http://ship-mobility-service:8096
+
   mockservices:
     build:
       context: ./mockServices

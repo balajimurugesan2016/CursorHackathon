@@ -115,5 +115,50 @@
     "plantIds": [
       11
     ]
+  },
+  {
+    "shipmentItem": "Crude oil",
+    "quantity": 320.0,
+    "shipNumber": "K-LINE EXPRESS 272",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-12T00:00:00Z",
+    "supplierIds": [2],
+    "plantIds": [5]
+  },
+  {
+    "shipmentItem": "Grain",
+    "quantity": 340.0,
+    "shipNumber": "ZIM EXPRESS 520",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-15T00:00:00Z",
+    "supplierIds": [3],
+    "plantIds": [7]
+  },
+  {
+    "shipmentItem": "Electronics",
+    "quantity": 360.0,
+    "shipNumber": "CMA CGM EXPRESS 812",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-18T00:00:00Z",
+    "supplierIds": [1],
+    "plantIds": [8]
+  },
+  {
+    "shipmentItem": "Auto parts",
+    "quantity": 380.0,
+    "shipNumber": "X-PRESS HERON 226",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-21T00:00:00Z",
+    "supplierIds": [4],
+    "plantIds": [9]
+  },
+  {
+    "shipmentItem": "Chemicals",
+    "quantity": 400.0,
+    "shipNumber": "MOL EAGLE 285",
+    "status": "IN_TRANSIT",
+    "receiveDate": "2026-04-24T00:00:00Z",
+    "supplierIds": [2],
+    "plantIds": [10]
   }
 ]
