@@ -54,8 +54,18 @@ export interface VesselNearLocationDto {
   vessels: VesselDto[];
 }
 
+/** Per-category composite risk from reasoning-agent (news score + pipeline context). */
+export interface CategoryRiskFactorDto {
+  categoryId: string;
+  categoryLabel: string;
+  newsCategoryScore: number;
+  riskFactor: number;
+  rationale: string;
+}
+
 export interface ArticleReasoningDto {
   classified: ClassifiedArticleDto;
+  categoryRisks: CategoryRiskFactorDto[];
   catalogMentions: string[];
   resolvedLocations: ResolvedLocationDto[];
   vesselsNearLocations: VesselNearLocationDto[];

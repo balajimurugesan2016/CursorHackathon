@@ -1,19 +1,18 @@
-package com.hackathon.reasoningagent.web.dto;
+package com.hackathon.supplychainrisk.dto.reasoning;
 
-import com.hackathon.reasoningagent.dto.locations.ResolvedLocationDto;
-import com.hackathon.reasoningagent.dto.news.ClassifiedArticleDto;
-import com.hackathon.reasoningagent.dto.vessel.VesselDto;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ArticleReasoningDto(
         ClassifiedArticleDto classified,
-        /** Per-category composite supply-chain risk after reasoning (news score + context). */
         List<CategoryRiskFactorDto> categoryRisks,
         List<String> catalogMentions,
         List<ResolvedLocationDto> resolvedLocations,
         List<VesselNearLocationDto> vesselsNearLocations
 ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record VesselNearLocationDto(
             String anchorMatchedName,
             double latitude,

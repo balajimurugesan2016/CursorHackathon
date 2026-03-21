@@ -14,6 +14,7 @@ python3 mockServices/scripts/generate_mock_data.py
 | **locations-agent** | **8091** | `com.hackathon.locationsagent` | Resolve **place names → coordinates** (catalog + fuzzy matching). |
 | **vessel-agent** | **8092** | `com.hackathon.vesselagent` | List **vessels near a point** using lat/lon + **radius (km)**. |
 | **reasoning-agent** | **8093** | `com.hackathon.reasoningagent` | **Orchestrates** news → locations → vessels: classified news, geo resolution, nearby ships. |
+| **supply-chain-risk-agent** | **8094** | `com.hackathon.supplychainrisk` | **Portfolio risk:** enterprise plants/suppliers + reasoning report (exposure by proximity & text). |
 
 **Mock endpoints used**
 
@@ -42,13 +43,15 @@ cd mockServices && mvn spring-boot:run
 
 | Port | Process |
 |------|---------|
+| **8081** | [`enterpriseservice`](../enterpriseservice) (plants, suppliers, shipments — in-memory H2) |
 | **8082** | `mockServices` (news, places catalog, vessels, places-by-area, …) |
 | **8090** | news-agent |
 | **8091** | locations-agent |
 | **8092** | vessel-agent |
 | **8093** | reasoning-agent |
+| **8094** | supply-chain-risk-agent |
 
-Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it.
+Start each agent you need in **separate terminals**. **reasoning-agent** depends on **mockServices** plus **news-agent**, **locations-agent**, and **vessel-agent** all being up before it. **supply-chain-risk-agent** additionally needs **[`enterpriseservice`](../enterpriseservice)** on **8081** and **reasoning-agent** on **8093**.
 
 ### Run the full stack (smoke test)
 
@@ -70,6 +73,7 @@ curl -sf "http://localhost:8090/api/agent/classified-news" | head -c 80 && echo
 curl -sf "http://localhost:8091/api/agent/resolve-location?name=Dubai%20City" | head -c 80 && echo
 curl -sf "http://localhost:8092/api/agent/vessels-nearby?latitude=45.05&longitude=-8.9&radiusNm=27" | head -c 80 && echo
 curl -sf "http://localhost:8093/api/agent/reasoning-report" | head -c 80 && echo
+curl -sf "http://localhost:8094/api/agent/supply-chain-risk-report" | head -c 80 && echo
 ```
 
 **reasoning-agent note:** `catalogMentions` is filled only when a **catalog place name** appears in an article’s **title or body** (substring match). Many mock articles mention cities in the title but not the full catalog string in the body, so **zero mentions** for an article is normal. Vessel lists can be **empty** if no mock ships fall within `reasoning.pipeline.search-radius-nm` (nautical miles) of a resolved point.
@@ -288,7 +292,7 @@ curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.too
 curl -s "http://localhost:8093/api/agent/reasoning-report?radiusNm=100" | python3 -m json.tool
 ```
 
-The response includes **`searchRadiusNm`**: the radius in **NM** used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusNm`**).
+The response includes **`searchRadiusNm`**: the radius in **NM** used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), **`categoryRisks`** (per news category: composite **risk factor** 0–1 plus **rationale**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusNm`**).
 
 ### Web UI (React)
 
@@ -308,6 +312,47 @@ cd agents/reasoning-agent && mvn -q compile
 
 ---
 
+## supply-chain-risk-agent
+
+Combines **[`enterpriseservice`](../enterpriseservice)** master data with the **reasoning-agent** report:
+
+1. **`GET /api/v1/plants`** then **`GET /api/v1/plants/{id}`** — each plant with linked **suppliers** (coordinates and names when present).
+2. **`GET /api/agent/reasoning-report`** on reasoning-agent (optional **`?radiusNm=`**, forwarded as-is).
+3. **Risk model:** for each reasoning article, takes the **max per-category `riskFactor`** from `categoryRisks`. A plant or supplier is **exposed** if a resolved news location is within **`supplychain-risk.proximity-radius-km`** (default **500 km**) of its lat/lon, or if **catalog mentions** / resolved place **text** overlaps the plant or supplier name/location. **Plant risk** is the max exposure score across the plant site and its suppliers; **portfolio risk** is the max across plants.
+
+Returns JSON: **`portfolioRiskScore`**, **`portfolioRationale`**, **`plants[]`** with per-supplier **`riskScore`** and **`signals`**.
+
+### Run
+
+Requires **8081** (enterprise) and **8093** (reasoning), with reasoning’s upstream stack running.
+
+```bash
+cd agents/supply-chain-risk-agent && mvn spring-boot:run
+```
+
+### Configuration
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| `supplychain-risk.enterprise-base-url` | `http://localhost:8081` | Enterprise service |
+| `supplychain-risk.reasoning-base-url` | `http://localhost:8093` | Reasoning agent |
+| `supplychain-risk.proximity-radius-km` | `500` | Great-circle distance threshold for “near” a news location |
+| `supplychain-risk.http-timeout-ms` | `120000` | RestClient read/connect budget |
+| `server.port` | `8094` | This agent |
+
+### HTTP API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/agent/supply-chain-risk-report` | Full report |
+| `GET` | `/api/agent/supply-chain-risk-report?radiusNm=100` | Same, forwarded to reasoning-agent for vessel radius |
+
+```bash
+curl -s "http://localhost:8094/api/agent/supply-chain-risk-report" | python3 -m json.tool
+```
+
+---
+
 ## Project layout
 
 ```
@@ -322,7 +367,10 @@ agents/
 ├── vessel-agent/
 │   ├── pom.xml
 │   └── src/main/java/com/hackathon/vesselagent/...
-└── reasoning-agent/
+├── reasoning-agent/
+│   ├── pom.xml
+│   └── src/main/java/com/hackathon/reasoningagent/...
+└── supply-chain-risk-agent/
     ├── pom.xml
-    └── src/main/java/com/hackathon/reasoningagent/...
+    └── src/main/java/com/hackathon/supplychainrisk/...
 ```

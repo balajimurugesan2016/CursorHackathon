@@ -10,8 +10,10 @@ import com.hackathon.reasoningagent.dto.news.AgentRunResponse;
 import com.hackathon.reasoningagent.dto.news.ClassifiedArticleDto;
 import com.hackathon.reasoningagent.dto.vessel.VesselDto;
 import com.hackathon.reasoningagent.dto.vessel.VesselsNearbyDto;
+import com.hackathon.reasoningagent.risk.SupplyChainCategoryRiskFactors;
 import com.hackathon.reasoningagent.web.dto.ArticleReasoningDto;
 import com.hackathon.reasoningagent.web.dto.ArticleReasoningDto.VesselNearLocationDto;
+import com.hackathon.reasoningagent.web.dto.CategoryRiskFactorDto;
 import com.hackathon.reasoningagent.web.dto.ReasoningReportResponse;
 import org.springframework.stereotype.Service;
 
@@ -96,7 +98,21 @@ public class ReasoningPipelineService {
                 ));
             }
 
-            out.add(new ArticleReasoningDto(article, List.copyOf(mentions), resolved, vesselBlocks));
+            int totalVessels = vesselBlocks.stream().mapToInt(VesselNearLocationDto::vesselCount).sum();
+            List<CategoryRiskFactorDto> categoryRisks = SupplyChainCategoryRiskFactors.compute(
+                    article,
+                    mentions.size(),
+                    resolved.size(),
+                    totalVessels
+            );
+
+            out.add(new ArticleReasoningDto(
+                    article,
+                    categoryRisks,
+                    List.copyOf(mentions),
+                    resolved,
+                    vesselBlocks
+            ));
         }
 
         return new ReasoningReportResponse(news.articleCount(), out, radiusNm);
