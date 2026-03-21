@@ -25,7 +25,8 @@ public class PlaceController {
     @PostMapping(value = "/get-places", produces = "application/json")
     public List<Place> getPlaces(
             @RequestParam Double latitude,
-            @RequestParam Double longitude
+            @RequestParam Double longitude,
+            @RequestParam(required = false) Double circle_radius
     ) throws Exception {
 
         if (!mockPlacesResource.exists()) {
@@ -37,15 +38,15 @@ public class PlaceController {
                 new TypeReference<List<Place>>() {}
         );
 
-        // 100 Nautical Miles in Kilometers = 185.2
-        final double SEACH_RADIUS_KM = 185.2;
+        // Default: 100 Nautical Miles = 185.2 km. Caller may override with circle_radius (km).
+        double radiusKm = (circle_radius != null && circle_radius > 0) ? circle_radius : 185.2;
 
         return allPlaces.stream()
                 .filter(place -> {
                     try {
                         double pLat = Double.parseDouble(place.latitude());
                         double pLon = Double.parseDouble(place.longitude());
-                        return haversine(latitude, longitude, pLat, pLon) <= SEACH_RADIUS_KM;
+                        return haversine(latitude, longitude, pLat, pLon) <= radiusKm;
                     } catch (NumberFormatException e) {
                         return false; // Skip invalid
                     }

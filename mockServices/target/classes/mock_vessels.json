@@ -2,8 +2,8 @@
   {
     "mmsi": "245297000",
     "name": "ELBEBORG",
-    "latitude": "45.078705",
-    "longitude": "-8.9553804",
+    "latitude": "26.450000",
+    "longitude": "55.800000",
     "speed": "110",
     "course": "185",
     "heading": "184"
@@ -29,8 +29,8 @@
   {
     "mmsi": "249223000",
     "name": "CGAS JAGUAR",
-    "latitude": "45.048882",
-    "longitude": "-8.8798838",
+    "latitude": "26.200000",
+    "longitude": "55.500000",
     "speed": "74",
     "course": "357",
     "heading": "357"
@@ -128,8 +128,8 @@
   {
     "mmsi": "210000010",
     "name": "MSC FEEDER 936",
-    "latitude": "32.860366",
-    "longitude": "31.559318",
+    "latitude": "26.550000",
+    "longitude": "56.100000",
     "speed": "145",
     "course": "161",
     "heading": "255"

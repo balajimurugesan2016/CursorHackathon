@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship Mobility Service — API Tester</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070911;
+            --panel-bg: rgba(13, 17, 33, 0.9);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --accent-glow: #00e5ff;
+            --accent-warm: #ff2a6d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            background: var(--bg-dark);
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header i {
+            font-size: 28px;
+            color: var(--accent-glow);
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(90deg, #fff, var(--accent-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .api-doc {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .api-doc .method { color: #00ff88; font-weight: 600; }
+        .api-doc .path { color: var(--accent-glow); font-family: monospace; }
+        .api-doc .desc { color: rgba(255,255,255,0.6); margin-top: 8px; }
+        button {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(255,42,109,0.1));
+            border: 1px solid var(--accent-glow);
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(135deg, rgba(0,229,255,0.3), rgba(255,42,109,0.2));
+            box-shadow: 0 0 20px rgba(0,229,255,0.2);
+        }
+        .results {
+            margin-top: 24px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 120px;
+        }
+        .results.loading { color: rgba(255,255,255,0.5); }
+        .results.error { color: var(--accent-warm); }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section:last-child { margin-bottom: 0; }
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 10px;
+        }
+        .city-list, .ship-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(0,229,255,0.15);
+            border: 1px solid rgba(0,229,255,0.3);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .ship-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .ship-card .name { font-weight: 700; color: var(--accent-glow); }
+        .ship-card .speed { color: #00ff88; font-size: 13px; }
+        .ship-card .cities { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+        .raw-json {
+            background: #0a0d14;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            overflow-x: auto;
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .empty { color: rgba(255,255,255,0.3); font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <i class="fa-solid fa-ship"></i>
+            <h1>Ship Mobility Service</h1>
+        </div>
+
+        <div class="api-doc">
+            <span class="method">GET</span> <span class="path">/api/ship-mobility</span>
+            <div class="desc">Returns non-delivered shipments' vessel locations: unique cities and ship speeds from enterprise + mock vessel/place APIs.</div>
+        </div>
+
+        <button onclick="fetchShipMobility()">
+            <i class="fa-solid fa-play"></i> Test Endpoint
+        </button>
+
+        <div id="results" class="results">
+            <span class="empty">Click "Test Endpoint" to fetch data.</span>
+        </div>
+    </div>
+
+    <script>
+        async function fetchShipMobility() {
+            const el = document.getElementById('results');
+            el.className = 'results loading';
+            el.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching /api/ship-mobility...';
+
+            try {
+                const res = await fetch('/api/ship-mobility');
+                const data = await res.json();
+
+                if (!res.ok) {
+                    el.className = 'results error';
+                    el.innerHTML = `Error ${res.status}: ${JSON.stringify(data)}`;
+                    return;
+                }
+
+                el.className = 'results';
+
+                let html = '';
+
+                html += '<div class="section">';
+                html += '<div class="section-title">Unique Cities</div>';
+                if (data.cities && data.cities.length) {
+                    html += '<div class="city-list">';
+                    data.cities.forEach(c => { html += `<span class="badge">${c}</span>`; });
+                    html += '</div>';
+                } else {
+                    html += '<div class="empty">No nearby cities in range.</div>';
+                }
+                html += '</div>';
+
+                html += '<div class="section">';
+                html += '<div class="section-title">Ships (non-delivered shipments)</div>';
+                if (data.ships && data.ships.length) {
+                    data.ships.forEach(s => {
+                        const citiesStr = s.cities && s.cities.length ? s.cities.join(', ') : '—';
+                        html += `<div class="ship-card">
+                            <span class="name">${s.shipName}</span>
+                            <span class="speed">Speed: ${s.speed || '—'} kn</span>
+                            <div class="cities">Nearby: ${citiesStr}</div>
+                        </div>`;
+                    });
+                } else {
+                    html += '<div class="empty">No ships found.</div>';
+                }
+                html += '</div>';
+
+                html += '<div class="section-title">Raw JSON</div>';
+                html += '<pre class="raw-json">' + JSON.stringify(data, null, 2) + '</pre>';
+
+                el.innerHTML = html;
+            } catch (err) {
+                el.className = 'results error';
+                el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
