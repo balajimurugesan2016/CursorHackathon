@@ -26,7 +26,7 @@ public class LocationsAgentClient {
         String uri = UriComponentsBuilder.fromUriString(props.locationsAgentBaseUrl())
                 .path("/api/agent/resolve-location")
                 .queryParam("name", placeName)
-                .build(true)
+                .build(false)
                 .toUriString();
         try {
             ResolvedLocationDto body = restClient.get()

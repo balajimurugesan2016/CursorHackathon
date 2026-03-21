@@ -60,16 +60,724 @@
     "longitude": "18.470000"
   },
   {
+    "name": "Taiwan Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "24.500000",
+    "longitude": "119.500000"
+  },
+  {
+    "name": "English Channel",
+    "type": "CHOKEPOINT",
+    "latitude": "50.800000",
+    "longitude": "1.600000"
+  },
+  {
+    "name": "Strait of Dover",
+    "type": "CHOKEPOINT",
+    "latitude": "51.000000",
+    "longitude": "1.400000"
+  },
+  {
+    "name": "Korea Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "34.000000",
+    "longitude": "129.500000"
+  },
+  {
+    "name": "Mozambique Channel",
+    "type": "CHOKEPOINT",
+    "latitude": "-16.000000",
+    "longitude": "42.000000"
+  },
+  {
+    "name": "Sunda Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "-6.000000",
+    "longitude": "105.500000"
+  },
+  {
+    "name": "Magellan Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "-53.500000",
+    "longitude": "-70.500000"
+  },
+  {
+    "name": "Northwest Passage",
+    "type": "CHOKEPOINT",
+    "latitude": "74.000000",
+    "longitude": "-94.000000"
+  },
+  {
+    "name": "Strait of Sicily",
+    "type": "CHOKEPOINT",
+    "latitude": "37.500000",
+    "longitude": "12.500000"
+  },
+  {
+    "name": "Bering Strait",
+    "type": "CHOKEPOINT",
+    "latitude": "65.800000",
+    "longitude": "-169.000000"
+  },
+  {
+    "name": "Port of Shanghai",
+    "type": "PORT",
+    "latitude": "31.230400",
+    "longitude": "121.473700"
+  },
+  {
+    "name": "Shanghai",
+    "type": "CITY",
+    "latitude": "31.230400",
+    "longitude": "121.473700"
+  },
+  {
+    "name": "Port of Singapore",
+    "type": "PORT",
+    "latitude": "1.264400",
+    "longitude": "103.822200"
+  },
+  {
+    "name": "Singapore City",
+    "type": "CITY",
+    "latitude": "1.352100",
+    "longitude": "103.819800"
+  },
+  {
+    "name": "Singapore",
+    "type": "COUNTRY",
+    "latitude": "1.352100",
+    "longitude": "103.819800"
+  },
+  {
+    "name": "Port of Rotterdam",
+    "type": "PORT",
+    "latitude": "51.924400",
+    "longitude": "4.477700"
+  },
+  {
+    "name": "Rotterdam",
+    "type": "CITY",
+    "latitude": "51.924400",
+    "longitude": "4.477700"
+  },
+  {
+    "name": "Port of Los Angeles",
+    "type": "PORT",
+    "latitude": "33.754200",
+    "longitude": "-118.216500"
+  },
+  {
+    "name": "Los Angeles",
+    "type": "CITY",
+    "latitude": "34.052200",
+    "longitude": "-118.243700"
+  },
+  {
+    "name": "Port of Long Beach",
+    "type": "PORT",
+    "latitude": "33.754200",
+    "longitude": "-118.216500"
+  },
+  {
+    "name": "Port of Hamburg",
+    "type": "PORT",
+    "latitude": "53.551100",
+    "longitude": "9.993700"
+  },
+  {
+    "name": "Hamburg",
+    "type": "CITY",
+    "latitude": "53.551100",
+    "longitude": "9.993700"
+  },
+  {
+    "name": "Port of Antwerp",
+    "type": "PORT",
+    "latitude": "51.219400",
+    "longitude": "4.402500"
+  },
+  {
+    "name": "Antwerp",
+    "type": "CITY",
+    "latitude": "51.219400",
+    "longitude": "4.402500"
+  },
+  {
+    "name": "Port of Busan",
+    "type": "PORT",
+    "latitude": "35.095100",
+    "longitude": "129.038900"
+  },
+  {
+    "name": "Busan",
+    "type": "CITY",
+    "latitude": "35.179600",
+    "longitude": "129.075600"
+  },
+  {
+    "name": "Port of Hong Kong",
+    "type": "PORT",
+    "latitude": "22.319300",
+    "longitude": "114.169400"
+  },
+  {
+    "name": "Hong Kong",
+    "type": "CITY",
+    "latitude": "22.319300",
+    "longitude": "114.169400"
+  },
+  {
+    "name": "Port of Ningbo-Zhoushan",
+    "type": "PORT",
+    "latitude": "29.868300",
+    "longitude": "121.544000"
+  },
+  {
+    "name": "Port of Shenzhen",
+    "type": "PORT",
+    "latitude": "22.543100",
+    "longitude": "114.057900"
+  },
+  {
+    "name": "Shenzhen",
+    "type": "CITY",
+    "latitude": "22.543100",
+    "longitude": "114.057900"
+  },
+  {
+    "name": "Port of Qingdao",
+    "type": "PORT",
+    "latitude": "36.067100",
+    "longitude": "120.382600"
+  },
+  {
+    "name": "Qingdao",
+    "type": "CITY",
+    "latitude": "36.067100",
+    "longitude": "120.382600"
+  },
+  {
+    "name": "Port of Guangzhou",
+    "type": "PORT",
+    "latitude": "23.129100",
+    "longitude": "113.264400"
+  },
+  {
+    "name": "Guangzhou",
+    "type": "CITY",
+    "latitude": "23.129100",
+    "longitude": "113.264400"
+  },
+  {
+    "name": "Port of Tokyo",
+    "type": "PORT",
+    "latitude": "35.443700",
+    "longitude": "139.638000"
+  },
+  {
+    "name": "Tokyo",
+    "type": "CITY",
+    "latitude": "35.676200",
+    "longitude": "139.650300"
+  },
+  {
+    "name": "Port of Yokohama",
+    "type": "PORT",
+    "latitude": "35.443700",
+    "longitude": "139.638000"
+  },
+  {
+    "name": "Yokohama",
+    "type": "CITY",
+    "latitude": "35.443700",
+    "longitude": "139.650300"
+  },
+  {
+    "name": "Port of Kaohsiung",
+    "type": "PORT",
+    "latitude": "22.627300",
+    "longitude": "120.301400"
+  },
+  {
+    "name": "Kaohsiung",
+    "type": "CITY",
+    "latitude": "22.627300",
+    "longitude": "120.301400"
+  },
+  {
+    "name": "Port Klang",
+    "type": "PORT",
+    "latitude": "3.031900",
+    "longitude": "101.418600"
+  },
+  {
+    "name": "Tanjung Pelepas",
+    "type": "PORT",
+    "latitude": "1.366700",
+    "longitude": "103.550000"
+  },
+  {
+    "name": "Port of Colombo",
+    "type": "PORT",
+    "latitude": "6.927100",
+    "longitude": "79.861200"
+  },
+  {
+    "name": "Colombo",
+    "type": "CITY",
+    "latitude": "6.927100",
+    "longitude": "79.861200"
+  },
+  {
+    "name": "Jebel Ali",
+    "type": "PORT",
+    "latitude": "25.024700",
+    "longitude": "55.044200"
+  },
+  {
+    "name": "Port Jebel Ali",
+    "type": "PORT",
+    "latitude": "25.024700",
+    "longitude": "55.044200"
+  },
+  {
     "name": "Dubai City",
     "type": "CITY",
     "latitude": "25.260000",
     "longitude": "55.300000"
   },
   {
-    "name": "Port Jebel Ali",
+    "name": "Port of Salalah",
     "type": "PORT",
-    "latitude": "25.010000",
-    "longitude": "55.060000"
+    "latitude": "16.952700",
+    "longitude": "54.006700"
+  },
+  {
+    "name": "Salalah",
+    "type": "CITY",
+    "latitude": "17.019700",
+    "longitude": "54.089200"
+  },
+  {
+    "name": "Port of Piraeus",
+    "type": "PORT",
+    "latitude": "37.942000",
+    "longitude": "23.646200"
+  },
+  {
+    "name": "Piraeus",
+    "type": "CITY",
+    "latitude": "37.942000",
+    "longitude": "23.646200"
+  },
+  {
+    "name": "Port of Felixstowe",
+    "type": "PORT",
+    "latitude": "51.961700",
+    "longitude": "1.351100"
+  },
+  {
+    "name": "Port of Bremerhaven",
+    "type": "PORT",
+    "latitude": "53.539600",
+    "longitude": "8.580900"
+  },
+  {
+    "name": "Port of New York and New Jersey",
+    "type": "PORT",
+    "latitude": "40.668100",
+    "longitude": "-74.045100"
+  },
+  {
+    "name": "New York City",
+    "type": "CITY",
+    "latitude": "40.712800",
+    "longitude": "-74.006000"
+  },
+  {
+    "name": "Port of Savannah",
+    "type": "PORT",
+    "latitude": "32.080900",
+    "longitude": "-81.091200"
+  },
+  {
+    "name": "Savannah",
+    "type": "CITY",
+    "latitude": "32.080900",
+    "longitude": "-81.091200"
+  },
+  {
+    "name": "Port of Houston",
+    "type": "PORT",
+    "latitude": "29.731300",
+    "longitude": "-95.267800"
+  },
+  {
+    "name": "Houston",
+    "type": "CITY",
+    "latitude": "29.760400",
+    "longitude": "-95.369800"
+  },
+  {
+    "name": "Port of Santos",
+    "type": "PORT",
+    "latitude": "-23.960800",
+    "longitude": "-46.333600"
+  },
+  {
+    "name": "Santos",
+    "type": "CITY",
+    "latitude": "-23.960800",
+    "longitude": "-46.333600"
+  },
+  {
+    "name": "Port of Durban",
+    "type": "PORT",
+    "latitude": "-29.858700",
+    "longitude": "31.021800"
+  },
+  {
+    "name": "Durban",
+    "type": "CITY",
+    "latitude": "-29.858700",
+    "longitude": "31.021800"
+  },
+  {
+    "name": "Port of Melbourne",
+    "type": "PORT",
+    "latitude": "-37.813600",
+    "longitude": "144.963100"
+  },
+  {
+    "name": "Melbourne",
+    "type": "CITY",
+    "latitude": "-37.813600",
+    "longitude": "144.963100"
+  },
+  {
+    "name": "Port of Sydney",
+    "type": "PORT",
+    "latitude": "-33.868800",
+    "longitude": "151.209300"
+  },
+  {
+    "name": "Sydney",
+    "type": "CITY",
+    "latitude": "-33.868800",
+    "longitude": "151.209300"
+  },
+  {
+    "name": "Port of Algeciras",
+    "type": "PORT",
+    "latitude": "36.140800",
+    "longitude": "-5.452600"
+  },
+  {
+    "name": "Algeciras",
+    "type": "CITY",
+    "latitude": "36.140800",
+    "longitude": "-5.452600"
+  },
+  {
+    "name": "Port of Le Havre",
+    "type": "PORT",
+    "latitude": "49.494400",
+    "longitude": "0.107900"
+  },
+  {
+    "name": "Le Havre",
+    "type": "CITY",
+    "latitude": "49.494400",
+    "longitude": "0.107900"
+  },
+  {
+    "name": "Port of Gothenburg",
+    "type": "PORT",
+    "latitude": "57.708900",
+    "longitude": "11.974600"
+  },
+  {
+    "name": "Gothenburg",
+    "type": "CITY",
+    "latitude": "57.708900",
+    "longitude": "11.974600"
+  },
+  {
+    "name": "Port of Oslo",
+    "type": "PORT",
+    "latitude": "59.913900",
+    "longitude": "10.752200"
+  },
+  {
+    "name": "Oslo",
+    "type": "CITY",
+    "latitude": "59.913900",
+    "longitude": "10.752200"
+  },
+  {
+    "name": "Port of Mumbai",
+    "type": "PORT",
+    "latitude": "18.958200",
+    "longitude": "72.842400"
+  },
+  {
+    "name": "Mumbai",
+    "type": "CITY",
+    "latitude": "19.076000",
+    "longitude": "72.877700"
+  },
+  {
+    "name": "Port of Chennai",
+    "type": "PORT",
+    "latitude": "13.082700",
+    "longitude": "80.270700"
+  },
+  {
+    "name": "Chennai",
+    "type": "CITY",
+    "latitude": "13.082700",
+    "longitude": "80.270700"
+  },
+  {
+    "name": "Port of Jakarta",
+    "type": "PORT",
+    "latitude": "-6.208800",
+    "longitude": "106.845600"
+  },
+  {
+    "name": "Jakarta",
+    "type": "CITY",
+    "latitude": "-6.208800",
+    "longitude": "106.845600"
+  },
+  {
+    "name": "Port of Manila",
+    "type": "PORT",
+    "latitude": "14.599500",
+    "longitude": "120.984200"
+  },
+  {
+    "name": "Manila",
+    "type": "CITY",
+    "latitude": "14.599500",
+    "longitude": "120.984200"
+  },
+  {
+    "name": "Port of Ho Chi Minh City",
+    "type": "PORT",
+    "latitude": "10.776900",
+    "longitude": "106.700900"
+  },
+  {
+    "name": "Ho Chi Minh City",
+    "type": "CITY",
+    "latitude": "10.776900",
+    "longitude": "106.700900"
+  },
+  {
+    "name": "Port of Bangkok",
+    "type": "PORT",
+    "latitude": "13.690000",
+    "longitude": "100.493000"
+  },
+  {
+    "name": "Bangkok",
+    "type": "CITY",
+    "latitude": "13.756300",
+    "longitude": "100.501800"
+  },
+  {
+    "name": "Port of Seattle",
+    "type": "PORT",
+    "latitude": "47.606200",
+    "longitude": "-122.332100"
+  },
+  {
+    "name": "Seattle",
+    "type": "CITY",
+    "latitude": "47.606200",
+    "longitude": "-122.332100"
+  },
+  {
+    "name": "Port of Vancouver",
+    "type": "PORT",
+    "latitude": "49.282700",
+    "longitude": "-123.120700"
+  },
+  {
+    "name": "Vancouver",
+    "type": "CITY",
+    "latitude": "49.282700",
+    "longitude": "-123.120700"
+  },
+  {
+    "name": "Port of Montreal",
+    "type": "PORT",
+    "latitude": "45.501700",
+    "longitude": "-73.567300"
+  },
+  {
+    "name": "Montreal",
+    "type": "CITY",
+    "latitude": "45.501700",
+    "longitude": "-73.567300"
+  },
+  {
+    "name": "Port of Genoa",
+    "type": "PORT",
+    "latitude": "44.405600",
+    "longitude": "8.946300"
+  },
+  {
+    "name": "Genoa",
+    "type": "CITY",
+    "latitude": "44.405600",
+    "longitude": "8.946300"
+  },
+  {
+    "name": "Port of Barcelona",
+    "type": "PORT",
+    "latitude": "41.385100",
+    "longitude": "2.173400"
+  },
+  {
+    "name": "Barcelona",
+    "type": "CITY",
+    "latitude": "41.385100",
+    "longitude": "2.173400"
+  },
+  {
+    "name": "Port of Valencia",
+    "type": "PORT",
+    "latitude": "39.469900",
+    "longitude": "-0.376300"
+  },
+  {
+    "name": "Valencia",
+    "type": "CITY",
+    "latitude": "39.469900",
+    "longitude": "-0.376300"
+  },
+  {
+    "name": "Port of Lisbon",
+    "type": "PORT",
+    "latitude": "38.722300",
+    "longitude": "-9.139300"
+  },
+  {
+    "name": "Lisbon",
+    "type": "CITY",
+    "latitude": "38.722300",
+    "longitude": "-9.139300"
+  },
+  {
+    "name": "Port of Casablanca",
+    "type": "PORT",
+    "latitude": "33.573100",
+    "longitude": "-7.589800"
+  },
+  {
+    "name": "Casablanca",
+    "type": "CITY",
+    "latitude": "33.573100",
+    "longitude": "-7.589800"
+  },
+  {
+    "name": "Port of Alexandria",
+    "type": "PORT",
+    "latitude": "31.200100",
+    "longitude": "29.918700"
+  },
+  {
+    "name": "Alexandria",
+    "type": "CITY",
+    "latitude": "31.200100",
+    "longitude": "29.918700"
+  },
+  {
+    "name": "Port of Haifa",
+    "type": "PORT",
+    "latitude": "32.794000",
+    "longitude": "34.989600"
+  },
+  {
+    "name": "Haifa",
+    "type": "CITY",
+    "latitude": "32.794000",
+    "longitude": "34.989600"
+  },
+  {
+    "name": "Port of Jeddah",
+    "type": "PORT",
+    "latitude": "21.485800",
+    "longitude": "39.192500"
+  },
+  {
+    "name": "Jeddah",
+    "type": "CITY",
+    "latitude": "21.485800",
+    "longitude": "39.192500"
+  },
+  {
+    "name": "Port of Dammam",
+    "type": "PORT",
+    "latitude": "26.420700",
+    "longitude": "50.088800"
+  },
+  {
+    "name": "Dammam",
+    "type": "CITY",
+    "latitude": "26.420700",
+    "longitude": "50.088800"
+  },
+  {
+    "name": "Port of Karachi",
+    "type": "PORT",
+    "latitude": "24.860700",
+    "longitude": "66.990500"
+  },
+  {
+    "name": "Karachi",
+    "type": "CITY",
+    "latitude": "24.860700",
+    "longitude": "66.990500"
+  },
+  {
+    "name": "Port of Chittagong",
+    "type": "PORT",
+    "latitude": "22.356900",
+    "longitude": "91.783200"
+  },
+  {
+    "name": "Chittagong",
+    "type": "CITY",
+    "latitude": "22.356900",
+    "longitude": "91.783200"
+  },
+  {
+    "name": "Port of Fremantle",
+    "type": "PORT",
+    "latitude": "-32.056900",
+    "longitude": "115.743900"
+  },
+  {
+    "name": "Fremantle",
+    "type": "CITY",
+    "latitude": "-32.056900",
+    "longitude": "115.743900"
+  },
+  {
+    "name": "Port of Auckland",
+    "type": "PORT",
+    "latitude": "-36.848500",
+    "longitude": "174.763300"
+  },
+  {
+    "name": "Auckland",
+    "type": "CITY",
+    "latitude": "-36.848500",
+    "longitude": "174.763300"
   },
   {
     "name": "United Arab Emirates",
@@ -78,46 +786,10 @@
     "longitude": "54.370000"
   },
   {
-    "name": "Khasab",
-    "type": "CITY",
-    "latitude": "26.180000",
-    "longitude": "56.240000"
-  },
-  {
-    "name": "Port of Khasab",
-    "type": "PORT",
-    "latitude": "26.200000",
-    "longitude": "56.240000"
-  },
-  {
     "name": "Oman",
     "type": "COUNTRY",
     "latitude": "21.000000",
     "longitude": "57.000000"
-  },
-  {
-    "name": "Abu Dhabi City",
-    "type": "CITY",
-    "latitude": "24.450000",
-    "longitude": "54.370000"
-  },
-  {
-    "name": "Khalifa Port",
-    "type": "PORT",
-    "latitude": "24.510000",
-    "longitude": "54.680000"
-  },
-  {
-    "name": "Manama City",
-    "type": "CITY",
-    "latitude": "26.220000",
-    "longitude": "50.580000"
-  },
-  {
-    "name": "Khalifa Bin Salman Port",
-    "type": "PORT",
-    "latitude": "26.200000",
-    "longitude": "50.670000"
   },
   {
     "name": "Bahrain",
@@ -126,52 +798,10 @@
     "longitude": "50.550000"
   },
   {
-    "name": "Suez City",
-    "type": "CITY",
-    "latitude": "29.970000",
-    "longitude": "32.530000"
-  },
-  {
-    "name": "Port of Suez",
-    "type": "PORT",
-    "latitude": "29.940000",
-    "longitude": "32.550000"
-  },
-  {
     "name": "Egypt",
     "type": "COUNTRY",
     "latitude": "26.820000",
     "longitude": "30.800000"
-  },
-  {
-    "name": "Singapore City",
-    "type": "CITY",
-    "latitude": "1.280000",
-    "longitude": "103.850000"
-  },
-  {
-    "name": "Port of Singapore",
-    "type": "PORT",
-    "latitude": "1.250000",
-    "longitude": "103.840000"
-  },
-  {
-    "name": "Singapore",
-    "type": "COUNTRY",
-    "latitude": "1.350000",
-    "longitude": "103.810000"
-  },
-  {
-    "name": "Colon",
-    "type": "CITY",
-    "latitude": "9.350000",
-    "longitude": "-79.900000"
-  },
-  {
-    "name": "Port of Cristobal",
-    "type": "PORT",
-    "latitude": "9.340000",
-    "longitude": "-79.910000"
   },
   {
     "name": "Panama",
@@ -180,21 +810,183 @@
     "longitude": "-80.780000"
   },
   {
-    "name": "Cape Town",
-    "type": "CITY",
-    "latitude": "-33.920000",
-    "longitude": "18.420000"
-  },
-  {
-    "name": "Port of Cape Town",
-    "type": "PORT",
-    "latitude": "-33.910000",
-    "longitude": "18.440000"
-  },
-  {
     "name": "South Africa",
     "type": "COUNTRY",
     "latitude": "-30.550000",
     "longitude": "22.930000"
+  },
+  {
+    "name": "Japan",
+    "type": "COUNTRY",
+    "latitude": "36.200000",
+    "longitude": "138.250000"
+  },
+  {
+    "name": "South Korea",
+    "type": "COUNTRY",
+    "latitude": "35.900000",
+    "longitude": "127.800000"
+  },
+  {
+    "name": "China",
+    "type": "COUNTRY",
+    "latitude": "35.000000",
+    "longitude": "105.000000"
+  },
+  {
+    "name": "United States",
+    "type": "COUNTRY",
+    "latitude": "39.000000",
+    "longitude": "-98.000000"
+  },
+  {
+    "name": "Germany",
+    "type": "COUNTRY",
+    "latitude": "51.000000",
+    "longitude": "10.000000"
+  },
+  {
+    "name": "Netherlands",
+    "type": "COUNTRY",
+    "latitude": "52.000000",
+    "longitude": "5.000000"
+  },
+  {
+    "name": "United Kingdom",
+    "type": "COUNTRY",
+    "latitude": "54.000000",
+    "longitude": "-2.000000"
+  },
+  {
+    "name": "France",
+    "type": "COUNTRY",
+    "latitude": "46.000000",
+    "longitude": "2.000000"
+  },
+  {
+    "name": "India",
+    "type": "COUNTRY",
+    "latitude": "20.600000",
+    "longitude": "78.900000"
+  },
+  {
+    "name": "Brazil",
+    "type": "COUNTRY",
+    "latitude": "-14.200000",
+    "longitude": "-51.900000"
+  },
+  {
+    "name": "Australia",
+    "type": "COUNTRY",
+    "latitude": "-25.000000",
+    "longitude": "133.000000"
+  },
+  {
+    "name": "Canada",
+    "type": "COUNTRY",
+    "latitude": "56.000000",
+    "longitude": "-106.000000"
+  },
+  {
+    "name": "Mexico",
+    "type": "COUNTRY",
+    "latitude": "23.000000",
+    "longitude": "-102.000000"
+  },
+  {
+    "name": "Turkey",
+    "type": "COUNTRY",
+    "latitude": "39.000000",
+    "longitude": "35.000000"
+  },
+  {
+    "name": "Saudi Arabia",
+    "type": "COUNTRY",
+    "latitude": "24.000000",
+    "longitude": "45.000000"
+  },
+  {
+    "name": "Indonesia",
+    "type": "COUNTRY",
+    "latitude": "-2.000000",
+    "longitude": "118.000000"
+  },
+  {
+    "name": "Malaysia",
+    "type": "COUNTRY",
+    "latitude": "4.000000",
+    "longitude": "102.000000"
+  },
+  {
+    "name": "Vietnam",
+    "type": "COUNTRY",
+    "latitude": "14.000000",
+    "longitude": "108.000000"
+  },
+  {
+    "name": "Philippines",
+    "type": "COUNTRY",
+    "latitude": "12.000000",
+    "longitude": "122.000000"
+  },
+  {
+    "name": "Taiwan",
+    "type": "COUNTRY",
+    "latitude": "23.700000",
+    "longitude": "121.000000"
+  },
+  {
+    "name": "Chile",
+    "type": "COUNTRY",
+    "latitude": "-35.000000",
+    "longitude": "-71.000000"
+  },
+  {
+    "name": "Argentina",
+    "type": "COUNTRY",
+    "latitude": "-34.000000",
+    "longitude": "-64.000000"
+  },
+  {
+    "name": "Nigeria",
+    "type": "COUNTRY",
+    "latitude": "9.000000",
+    "longitude": "8.000000"
+  },
+  {
+    "name": "Kenya",
+    "type": "COUNTRY",
+    "latitude": "-1.000000",
+    "longitude": "38.000000"
+  },
+  {
+    "name": "Norway",
+    "type": "COUNTRY",
+    "latitude": "62.000000",
+    "longitude": "10.000000"
+  },
+  {
+    "name": "Sweden",
+    "type": "COUNTRY",
+    "latitude": "62.000000",
+    "longitude": "15.000000"
+  },
+  {
+    "name": "Poland",
+    "type": "COUNTRY",
+    "latitude": "52.000000",
+    "longitude": "19.000000"
+  },
+  {
+    "name": "Italy",
+    "type": "COUNTRY",
+    "latitude": "42.000000",
+    "longitude": "12.000000"
+  },
+  {
+    "name": "Spain",
+    "type": "COUNTRY",
+    "latitude": "40.000000",
+    "longitude": "-4.000000"
   }
 ]

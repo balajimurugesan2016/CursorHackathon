@@ -2,7 +2,11 @@
 
 This folder holds **Spring Boot agents** that sit on top of the shared mock APIs in [`../mockServices`](../mockServices) (`mockServices`). Each agent calls HTTP endpoints on the mock service and exposes its own JSON API.
 
-**Mock service base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`.
+**Mock service base URL (default):** `http://localhost:8082` — see `mockServices/src/main/resources/application.properties`. Large mock datasets (`mock_articles.json`, `mock_places.json`, `mock_vessels.json`) can be regenerated from the repository root with:
+
+```bash
+python3 mockServices/scripts/generate_mock_data.py
+```
 
 | Agent | Port | Package | Role |
 |-------|------|---------|------|
