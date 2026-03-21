@@ -6,6 +6,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Longer path first: `for (context in proxies)` matches first prefix (see Vite proxyMiddleware).
+      "/api/agent/supply-chain-risk-report": {
+        target: "http://localhost:8094",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://localhost:8093",
         changeOrigin: true,

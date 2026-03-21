@@ -78,6 +78,40 @@ export interface ReasoningReportResponse {
   searchRadiusNm: number;
 }
 
+/** supply-chain-risk-agent (port 8094) — enterprise + reasoning, disturbance certainty from vessel ETA. */
+export interface SupplierSupplyRiskDto {
+  supplierId: number;
+  supplierName: string;
+  riskScore: number;
+  disturbanceCertainty: number;
+  estimatedHoursToImpact: number | null;
+  contributingArticleTitles: string[];
+  signals: string[];
+}
+
+export interface PlantSupplyRiskDto {
+  plantId: number;
+  plantName: string;
+  location: string | null;
+  plantRiskScore: number;
+  disturbanceCertainty: number;
+  estimatedHoursToImpact: number | null;
+  rationale: string;
+  suppliers: SupplierSupplyRiskDto[];
+}
+
+export interface SupplyChainRiskReportResponse {
+  portfolioRiskScore: number;
+  portfolioDisturbanceCertainty: number;
+  portfolioRationale: string;
+  portfolioDisturbanceRationale: string;
+  portfolioEstimatedHoursToImpact: number | null;
+  reasoningArticleCount: number;
+  searchRadiusNm: number;
+  plantCount: number;
+  plants: PlantSupplyRiskDto[];
+}
+
 export interface ErrorBody {
   message: string;
 }

@@ -12,6 +12,14 @@ public record ArticleReasoningDto(
         List<ResolvedLocationDto> resolvedLocations,
         List<VesselNearLocationDto> vesselsNearLocations
 ) {
+    /** Reasoning JSON may omit empty lists; Jackson passes null for missing properties. */
+    public ArticleReasoningDto {
+        categoryRisks = categoryRisks != null ? categoryRisks : List.of();
+        catalogMentions = catalogMentions != null ? catalogMentions : List.of();
+        resolvedLocations = resolvedLocations != null ? resolvedLocations : List.of();
+        vesselsNearLocations = vesselsNearLocations != null ? vesselsNearLocations : List.of();
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VesselNearLocationDto(
             String anchorMatchedName,

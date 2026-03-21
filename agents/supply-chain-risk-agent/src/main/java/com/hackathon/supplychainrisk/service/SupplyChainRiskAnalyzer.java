@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 
 @Component
 public class SupplyChainRiskAnalyzer {
@@ -32,7 +33,10 @@ public class SupplyChainRiskAnalyzer {
         if (plants == null || plants.isEmpty()) {
             return new SupplyChainRiskReportResponse(
                     0.0,
+                    0.0,
                     "No plants in enterprise service — seed or create plants to assess supply-chain exposure.",
+                    "No maritime disturbance estimate without plants.",
+                    null,
                     reasoning.articleCount(),
                     reasoning.searchRadiusNm(),
                     0,
@@ -42,25 +46,52 @@ public class SupplyChainRiskAnalyzer {
 
         List<PlantSupplyRiskDto> out = new ArrayList<>();
         double portfolioMax = 0.0;
+        double portfolioDisturbanceMax = 0.0;
+        Double portfolioMinHours = null;
 
         for (EnterprisePlantDto plant : plants) {
             PlantSupplyRiskDto pr = analyzePlant(plant, articles, proximityRadiusKm);
             out.add(pr);
             portfolioMax = Math.max(portfolioMax, pr.plantRiskScore());
+            portfolioDisturbanceMax = Math.max(portfolioDisturbanceMax, pr.disturbanceCertainty());
+            if (pr.estimatedHoursToImpact() != null) {
+                portfolioMinHours = portfolioMinHours == null
+                        ? pr.estimatedHoursToImpact()
+                        : Math.min(portfolioMinHours, pr.estimatedHoursToImpact());
+            }
         }
 
         out.sort(Comparator.comparingDouble(PlantSupplyRiskDto::plantRiskScore).reversed());
 
         String rationale = portfolioRationale(portfolioMax, plants.size(), reasoning.articleCount(), articles.size());
+        String disturbanceRationale = portfolioDisturbanceRationale(portfolioDisturbanceMax, portfolioMinHours);
 
         return new SupplyChainRiskReportResponse(
                 round3(portfolioMax),
+                round3(portfolioDisturbanceMax),
                 rationale,
+                disturbanceRationale,
+                portfolioMinHours,
                 reasoning.articleCount(),
                 reasoning.searchRadiusNm(),
                 plants.size(),
                 out
         );
+    }
+
+    private static String portfolioDisturbanceRationale(double portfolioDisturbanceMax, Double portfolioMinHours) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(
+                Locale.US,
+                "Disturbance certainty %.3f blends category risk with how soon nearby vessels (speed × distance) could reach your sites.",
+                portfolioDisturbanceMax
+        ));
+        if (portfolioMinHours != null) {
+            sb.append(" Soonest indicative ETA: ").append(MaritimeDisturbanceCalculator.formatHours(portfolioMinHours)).append(".");
+        } else {
+            sb.append(" ETA not computed where vessel speed or coordinates are missing.");
+        }
+        return sb.toString();
     }
 
     private static String portfolioRationale(
@@ -95,6 +126,8 @@ public class SupplyChainRiskAnalyzer {
         }
 
         double plantDirect = 0.0;
+        double plantDirectDisturb = 0.0;
+        Double plantDirectMinH = null;
         LinkedHashSet<String> plantSignals = new LinkedHashSet<>();
 
         for (ArticleReasoningDto art : articles) {
@@ -115,6 +148,19 @@ public class SupplyChainRiskAnalyzer {
             if (plantExp.exposed()) {
                 plantDirect = Math.max(plantDirect, ar);
                 plantSignals.add(plantExp.signal() + " — \"" + title + "\"");
+
+                OptionalDouble mh = OptionalDouble.empty();
+                Optional<Coord> pcoord = parseCoord(plant.latitude(), plant.longitude());
+                if (pcoord.isPresent()) {
+                    Coord c = pcoord.get();
+                    mh = MaritimeDisturbanceCalculator.minHoursToEntity(c.lat, c.lon, art);
+                }
+                double dc = MaritimeDisturbanceCalculator.disturbanceCertainty(ar, mh, art);
+                plantDirectDisturb = Math.max(plantDirectDisturb, dc);
+                if (mh.isPresent()) {
+                    double h = mh.getAsDouble();
+                    plantDirectMinH = plantDirectMinH == null ? h : Math.min(plantDirectMinH, h);
+                }
             }
 
             for (EnterpriseSupplierDto s : sups) {
@@ -130,23 +176,51 @@ public class SupplyChainRiskAnalyzer {
                         proximityRadiusKm
                 );
                 if (se.exposed()) {
+                    OptionalDouble mh = OptionalDouble.empty();
+                    Optional<Coord> sco = parseCoord(s.latitude(), s.longitude());
+                    if (sco.isPresent()) {
+                        Coord c = sco.get();
+                        mh = MaritimeDisturbanceCalculator.minHoursToEntity(c.lat, c.lon, art);
+                    }
+                    double dc = MaritimeDisturbanceCalculator.disturbanceCertainty(ar, mh, art);
+                    Double hours = mh.isPresent() ? mh.getAsDouble() : null;
                     SupplierAccum acc = byId.computeIfAbsent(s.id(), k -> new SupplierAccum());
-                    acc.add(ar, title, se.signal());
+                    acc.add(ar, title, se.signal(), dc, hours);
                 }
             }
         }
 
         double supplierMax = byId.values().stream().mapToDouble(SupplierAccum::maxRisk).max().orElse(0.0);
+        double supplierDisturbMax = byId.values().stream().mapToDouble(SupplierAccum::maxDisturbanceCertainty).max().orElse(0.0);
+        Double supplierMinH = byId.values().stream()
+                .map(SupplierAccum::minHours)
+                .filter(h -> h != null && Double.isFinite(h))
+                .min(Double::compareTo)
+                .orElse(null);
+
         double plantScore = Math.max(plantDirect, supplierMax);
+        double plantDisturb = Math.max(plantDirectDisturb, supplierDisturbMax);
+        Double plantMinHours = null;
+        if (plantDirectMinH != null && supplierMinH != null) {
+            plantMinHours = Math.min(plantDirectMinH, supplierMinH);
+        } else if (plantDirectMinH != null) {
+            plantMinHours = plantDirectMinH;
+        } else {
+            plantMinHours = supplierMinH;
+        }
 
         List<SupplierSupplyRiskDto> supplierRows = new ArrayList<>();
         for (EnterpriseSupplierDto s : sups) {
             SupplierAccum acc = s.id() != null ? byId.get(s.id()) : null;
             double score = acc != null ? acc.maxRisk : 0.0;
+            double disturb = acc != null ? acc.maxDisturbanceCertainty : 0.0;
+            Double h = acc != null ? acc.minHours : null;
             supplierRows.add(new SupplierSupplyRiskDto(
                     s.id(),
                     s.supplierName() != null ? s.supplierName() : "?",
                     round3(score),
+                    round3(disturb),
+                    h,
                     acc != null ? List.copyOf(acc.titles) : List.of(),
                     acc != null ? List.copyOf(acc.signals) : List.of()
             ));
@@ -154,20 +228,21 @@ public class SupplyChainRiskAnalyzer {
 
         supplierRows.sort(Comparator.comparingDouble(SupplierSupplyRiskDto::riskScore).reversed());
 
-        String plantRationale = buildPlantRationale(plant.plantName(), plantScore, plantSignals, plantDirect, supplierMax);
+        String plantRationale = buildPlantRationale(plantScore, plantSignals, plantDirect, supplierMax);
 
         return new PlantSupplyRiskDto(
                 plant.id(),
                 plant.plantName() != null ? plant.plantName() : "?",
                 plant.location(),
                 round3(plantScore),
+                round3(plantDisturb),
+                plantMinHours,
                 plantRationale,
                 supplierRows
         );
     }
 
     private static String buildPlantRationale(
-            String plantName,
             double plantScore,
             LinkedHashSet<String> plantSignals,
             double plantDirect,
@@ -307,11 +382,17 @@ public class SupplyChainRiskAnalyzer {
 
     private static final class SupplierAccum {
         private double maxRisk;
+        private double maxDisturbanceCertainty;
+        private Double minHours;
         private final LinkedHashSet<String> titles = new LinkedHashSet<>();
         private final List<String> signals = new ArrayList<>();
 
-        void add(double risk, String title, String signal) {
+        void add(double risk, String title, String signal, double disturbanceCertainty, Double hours) {
             maxRisk = Math.max(maxRisk, risk);
+            maxDisturbanceCertainty = Math.max(maxDisturbanceCertainty, disturbanceCertainty);
+            if (hours != null && Double.isFinite(hours)) {
+                minHours = minHours == null ? hours : Math.min(minHours, hours);
+            }
             if (titles.size() < 6) {
                 titles.add(title);
             }
@@ -322,6 +403,14 @@ public class SupplyChainRiskAnalyzer {
 
         double maxRisk() {
             return maxRisk;
+        }
+
+        double maxDisturbanceCertainty() {
+            return maxDisturbanceCertainty;
+        }
+
+        Double minHours() {
+            return minHours;
         }
 
         LinkedHashSet<String> titles() {

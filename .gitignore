@@ -36,3 +36,7 @@ Thumbs.db
 application-local.properties
 application-local.yml
 *.log
+
+# SAP MTA
+mta_archives/
+*.mtar

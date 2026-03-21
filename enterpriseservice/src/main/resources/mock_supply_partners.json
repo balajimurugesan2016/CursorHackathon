@@ -1,0 +1,23 @@
+[
+  {
+    "supplierName": "Gulf Petrochem Supplies LLC",
+    "location": "Jebel Ali corridor",
+    "latitude": "25.018",
+    "longitude": "55.058",
+    "contractStatus": "ACTIVE"
+  },
+  {
+    "supplierName": "Strait Logistics Cooperative",
+    "location": "Hormuz approaches",
+    "latitude": "26.560",
+    "longitude": "56.250",
+    "contractStatus": "ACTIVE"
+  },
+  {
+    "supplierName": "Malacca Strait Feeder JV",
+    "location": "Malacca approaches",
+    "latitude": "2.500",
+    "longitude": "101.200",
+    "contractStatus": "ACTIVE"
+  }
+]

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchReasoningReport } from "./api";
-import type { ArticleReasoningDto, ReasoningReportResponse } from "./types";
+import { fetchReasoningReport, fetchSupplyChainRiskReport } from "./api";
+import type {
+  ArticleReasoningDto,
+  PlantSupplyRiskDto,
+  ReasoningReportResponse,
+  SupplyChainRiskReportResponse,
+} from "./types";
 import "./App.css";
 
 /** Keep in sync with reasoning.pipeline.*-nm in application.properties (nautical miles) */
@@ -10,6 +15,88 @@ const RADIUS_DEFAULT = 54;
 
 function pct(n: number): string {
   return `${Math.round(n * 1000) / 10}%`;
+}
+
+function formatEtaHours(h: number | null | undefined): string {
+  if (h == null || !Number.isFinite(h)) return "—";
+  if (h < 72) return `~${h.toFixed(1)} h`;
+  return `~${(h / 24).toFixed(1)} d`;
+}
+
+function SupplyChainPortfolioPanel({ report }: { report: SupplyChainRiskReportResponse }) {
+  const pd = report.portfolioDisturbanceCertainty;
+  const pr = report.portfolioRiskScore;
+  const eta = report.portfolioEstimatedHoursToImpact;
+  return (
+    <section className="disturbance-panel" aria-label="Supply chain disturbance">
+      <div className="section-label">Your supply chain — disturbance certainty</div>
+      <p className="disturbance-intro">
+        <span className="disturbance-line">{report.portfolioRationale}</span>{" "}
+        <span className="disturbance-line">{report.portfolioDisturbanceRationale}</span>
+      </p>
+      <div className="disturbance-grid">
+        <div className="disturbance-cell">
+          <div className="disturbance-metric-label">Exposure risk (max)</div>
+          <div className="meter" title={`Risk ${pr}`}>
+            <div className="meter-fill meter-fill-risk" style={{ width: pct(pr) }} />
+          </div>
+          <div className="disturbance-value">{pct(pr)}</div>
+        </div>
+        <div className="disturbance-cell">
+          <div className="disturbance-metric-label">Disturbance certainty (risk × vessel ETA)</div>
+          <div className="meter" title={`Certainty ${pd}`}>
+            <div className="meter-fill meter-fill-certainty" style={{ width: pct(pd) }} />
+          </div>
+          <div className="disturbance-value">{pct(pd)}</div>
+        </div>
+        <div className="disturbance-cell disturbance-eta">
+          <div className="disturbance-metric-label">Soonest indicative ETA to a site</div>
+          <div className="eta-value">{formatEtaHours(eta)}</div>
+          <p className="eta-hint">
+            Straight-line distance ÷ reported speed (kn→km/h). Missing speed leaves ETA blank.
+          </p>
+        </div>
+      </div>
+      <PlantRiskBlocks plants={report.plants} />
+    </section>
+  );
+}
+
+function PlantRiskBlocks({ plants }: { plants: PlantSupplyRiskDto[] }) {
+  if (!plants.length) {
+    return <p className="empty-note">No plants in enterprise service.</p>;
+  }
+  return (
+    <div className="plant-sc-list">
+      {plants.map((p) => (
+        <div key={p.plantId} className="plant-sc-block">
+          <div className="plant-sc-head">
+            <strong>{p.plantName}</strong>
+            <span className="plant-sc-meta">
+              exposure <em>{pct(p.plantRiskScore)}</em> · disturbance <em>{pct(p.disturbanceCertainty)}</em> · ETA{" "}
+              {formatEtaHours(p.estimatedHoursToImpact)}
+            </span>
+          </div>
+          <p className="plant-sc-rationale">{p.rationale}</p>
+          {p.suppliers?.length ? (
+            <ul className="supplier-sc-list">
+              {p.suppliers.map((s) => (
+                <li key={s.supplierId}>
+                  <span className="sup-name">{s.supplierName}</span>
+                  <span className="sup-meta">
+                    exposure {pct(s.riskScore)} · disturbance {pct(s.disturbanceCertainty)} · ETA{" "}
+                    {formatEtaHours(s.estimatedHoursToImpact)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty-note subtle">No linked suppliers.</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function fallbackSummaryExcerpt(body: string | undefined): string | null {
@@ -211,18 +298,46 @@ function ArticleCard({ row }: { row: ArticleReasoningDto }) {
 
 export default function App() {
   const [data, setData] = useState<ReasoningReportResponse | null>(null);
+  const [supplyChain, setSupplyChain] = useState<SupplyChainRiskReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supplyChainError, setSupplyChainError] = useState<string | null>(null);
   const [radiusNm, setRadiusNm] = useState(RADIUS_DEFAULT);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSupplyChainError(null);
     try {
-      const r = await fetchReasoningReport(radiusNm);
-      setData(r);
+      const [reasoningRes, scRes] = await Promise.allSettled([
+        fetchReasoningReport(radiusNm),
+        fetchSupplyChainRiskReport(radiusNm),
+      ]);
+
+      if (reasoningRes.status === "fulfilled") {
+        setData(reasoningRes.value);
+        setError(null);
+      } else {
+        setData(null);
+        setError(
+          reasoningRes.reason instanceof Error
+            ? reasoningRes.reason.message
+            : String(reasoningRes.reason)
+        );
+      }
+
+      if (scRes.status === "fulfilled") {
+        setSupplyChain(scRes.value);
+        setSupplyChainError(null);
+      } else {
+        setSupplyChain(null);
+        setSupplyChainError(
+          scRes.reason instanceof Error ? scRes.reason.message : String(scRes.reason)
+        );
+      }
     } catch (e) {
       setData(null);
+      setSupplyChain(null);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
@@ -246,8 +361,9 @@ export default function App() {
           <div className="hackathon-badge">Live pipeline</div>
           <h1 className="neon-title">Reasoning agent report</h1>
           <p className="subtitle">
-            Live view of <code>/api/agent/reasoning-report?radiusNm=…</code> — classified news, place
-            mentions, resolved coordinates, and nearby vessels (radius in <strong>NM</strong> to vessel-agent).
+            Live view of <code>/api/agent/reasoning-report?radiusNm=…</code> plus{" "}
+            <code>/api/agent/supply-chain-risk-report</code> — enterprise plants/suppliers with{" "}
+            <strong>disturbance certainty</strong> (category risk × vessel speed / ETA to your sites).
           </p>
           <div className="radius-panel" aria-label="Vessel search radius">
             <label className="radius-label" htmlFor="radius-range">
@@ -298,8 +414,21 @@ export default function App() {
           <strong>Could not load report.</strong> {error}
           <br />
           <span className="meta">
-            Ensure mock services and all agents are running (reasoning-agent on port 8093). For{" "}
-            <code>vite preview</code>, set <code>VITE_API_BASE=http://localhost:8093</code> or enable CORS.
+            Ensure mock services, news/locations/vessel agents, reasoning-agent (8093), enterpriseservice (8085),
+            and supply-chain-risk-agent (8094) are running. For <code>vite preview</code>, set{" "}
+            <code>VITE_API_BASE</code> / <code>VITE_SUPPLY_RISK_BASE</code> or enable CORS.
+          </span>
+        </div>
+      ) : null}
+
+      {supplyChainError ? (
+        <div className="banner banner-warn" role="status">
+          <strong>Supply-chain risk report unavailable.</strong> {supplyChainError}
+          <br />
+          <span className="meta">
+            Run{" "}
+            <code>{"cd agents/supply-chain-risk-agent && mvn spring-boot:run"}</code> (port 8094). For a full report,
+            also run enterpriseservice on 8085. Restart <code>npm run dev</code> after changing the Vite proxy.
           </span>
         </div>
       ) : null}
@@ -314,6 +443,11 @@ export default function App() {
             <strong>{data.articleCount}</strong> article(s) · vessel search radius{" "}
             <strong>{data.searchRadiusNm}</strong> NM
           </p>
+
+          {supplyChain ? (
+            <SupplyChainPortfolioPanel report={supplyChain} />
+          ) : null}
+
           <div className="articles">
             {data.articles.map((row, index) => (
               <ArticleCard
