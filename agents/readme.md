@@ -284,6 +284,16 @@ curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.too
 
 Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search).
 
+### Web UI (React)
+
+A Vite + React dashboard in [`../reasoning-ui`](../reasoning-ui) (repo root) calls the same report. With **reasoning-agent** on **8093** and **Node.js** installed:
+
+```bash
+cd reasoning-ui && npm install && npm run dev
+```
+
+Open **http://localhost:5173** — the dev server **proxies** `/api` to `http://localhost:8093`. For `npm run preview` after a production build, either set **`VITE_API_BASE=http://localhost:8093`** when building, or rely on **CORS** (allowed for localhost ports **5173** and **4173** on the reasoning agent).
+
 ### Build
 
 ```bash
