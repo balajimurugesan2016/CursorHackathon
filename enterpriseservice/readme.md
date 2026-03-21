@@ -1,6 +1,8 @@
 # Enterprise service
 
-Design and implementation plan: [docs/enterprise-service-plan.md](docs/enterprise-service-plan.md).
+**Purpose:** Hackathon **master data** for the supply network (**plants**, **suppliers**, **shipments**) plus **orchestration** that pulls mock **news, vessels, and places** into one snapshot for **dashboards**—while specialized **agents** (news, ships, reasoning) live under [`agents/`](../agents). Geography for demos (including **choke points** such as the Strait of Hormuz in mock data) aligns with seeded **plants** via `mock_places.json`.
+
+Design and domain plan: [docs/enterprise-service-plan.md](docs/enterprise-service-plan.md).
 
 ## Run
 
