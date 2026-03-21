@@ -4,7 +4,6 @@ import com.hackathon.reasoningagent.client.LocationsAgentClient;
 import com.hackathon.reasoningagent.client.NewsAgentClient;
 import com.hackathon.reasoningagent.client.PlaceCatalogHttpClient;
 import com.hackathon.reasoningagent.client.VesselAgentClient;
-import com.hackathon.reasoningagent.config.ReasoningPipelineProperties;
 import com.hackathon.reasoningagent.dto.catalog.PlaceCatalogEntryDto;
 import com.hackathon.reasoningagent.dto.locations.ResolvedLocationDto;
 import com.hackathon.reasoningagent.dto.news.AgentRunResponse;
@@ -31,23 +30,20 @@ public class ReasoningPipelineService {
     private final PlaceCatalogHttpClient placeCatalogHttpClient;
     private final LocationsAgentClient locationsAgentClient;
     private final VesselAgentClient vesselAgentClient;
-    private final ReasoningPipelineProperties pipelineProperties;
 
     public ReasoningPipelineService(
             NewsAgentClient newsAgentClient,
             PlaceCatalogHttpClient placeCatalogHttpClient,
             LocationsAgentClient locationsAgentClient,
-            VesselAgentClient vesselAgentClient,
-            ReasoningPipelineProperties pipelineProperties
+            VesselAgentClient vesselAgentClient
     ) {
         this.newsAgentClient = newsAgentClient;
         this.placeCatalogHttpClient = placeCatalogHttpClient;
         this.locationsAgentClient = locationsAgentClient;
         this.vesselAgentClient = vesselAgentClient;
-        this.pipelineProperties = pipelineProperties;
     }
 
-    public ReasoningReportResponse buildReport() {
+    public ReasoningReportResponse buildReport(double radiusKm) {
         AgentRunResponse news = newsAgentClient.fetchClassifiedNews();
         List<PlaceCatalogEntryDto> catalog = placeCatalogHttpClient.fetchCatalog();
         catalog = new ArrayList<>(catalog);
@@ -72,7 +68,7 @@ public class ReasoningPipelineService {
             List<VesselNearLocationDto> vesselBlocks = new ArrayList<>();
             Set<String> vesselSearchKeys = new LinkedHashSet<>();
 
-            double radius = pipelineProperties.searchRadiusKm();
+            double radius = radiusKm;
 
             for (String placeName : mentions) {
                 Optional<ResolvedLocationDto> loc = locationsAgentClient.resolveLocationName(placeName);
@@ -103,7 +99,7 @@ public class ReasoningPipelineService {
             out.add(new ArticleReasoningDto(article, List.copyOf(mentions), resolved, vesselBlocks));
         }
 
-        return new ReasoningReportResponse(news.articleCount(), out);
+        return new ReasoningReportResponse(news.articleCount(), out, radiusKm);
     }
 
     private static String buildSearchText(ClassifiedArticleDto article) {

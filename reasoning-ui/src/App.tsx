@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchReasoningReport } from "./api";
 import type { ArticleReasoningDto, ReasoningReportResponse } from "./types";
 import "./App.css";
+
+/** Keep in sync with reasoning.pipeline defaults in application.properties */
+const RADIUS_MIN = 1;
+const RADIUS_MAX = 500;
+const RADIUS_DEFAULT = 100;
 
 function pct(n: number): string {
   return `${Math.round(n * 1000) / 10}%`;
@@ -160,12 +165,13 @@ export default function App() {
   const [data, setData] = useState<ReasoningReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [radiusKm, setRadiusKm] = useState(RADIUS_DEFAULT);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetchReasoningReport();
+      const r = await fetchReasoningReport(radiusKm);
       setData(r);
     } catch (e) {
       setData(null);
@@ -173,9 +179,14 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [radiusKm]);
 
+  const didInitialFetch = useRef(false);
   useEffect(() => {
+    if (didInitialFetch.current) {
+      return;
+    }
+    didInitialFetch.current = true;
     void load();
   }, [load]);
 
@@ -187,9 +198,44 @@ export default function App() {
           <div className="hackathon-badge">Live pipeline</div>
           <h1 className="neon-title">Reasoning agent report</h1>
           <p className="subtitle">
-            Live view of <code>/api/agent/reasoning-report</code> — classified news, place
-            mentions, resolved coordinates, and nearby vessels.
+            Live view of <code>/api/agent/reasoning-report?radiusKm=…</code> — classified news, place
+            mentions, resolved coordinates, and nearby vessels (radius flows to vessel-agent).
           </p>
+          <div className="radius-panel" aria-label="Vessel search radius">
+            <label className="radius-label" htmlFor="radius-range">
+              Vessel search radius
+            </label>
+            <div className="radius-row">
+              <input
+                id="radius-range"
+                className="radius-slider"
+                type="range"
+                min={RADIUS_MIN}
+                max={RADIUS_MAX}
+                step={1}
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+              />
+              <input
+                className="radius-input"
+                type="number"
+                min={RADIUS_MIN}
+                max={RADIUS_MAX}
+                step={1}
+                value={radiusKm}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isFinite(v)) return;
+                  setRadiusKm(Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, Math.round(v))));
+                }}
+                aria-label="Radius in kilometers"
+              />
+              <span className="radius-unit">km</span>
+            </div>
+            <p className="radius-hint">
+              Allowed: {RADIUS_MIN}–{RADIUS_MAX} km (see reasoning.pipeline on server).
+            </p>
+          </div>
         </div>
         <div className="actions">
           <button type="button" className="btn btn-primary" onClick={() => void load()} disabled={loading}>
@@ -216,7 +262,8 @@ export default function App() {
       {data ? (
         <>
           <p className="summary">
-            <strong>{data.articleCount}</strong> article(s) in this run.
+            <strong>{data.articleCount}</strong> article(s) · vessel search radius{" "}
+            <strong>{data.searchRadiusKm}</strong> km
           </p>
           <div className="articles">
             {data.articles.map((row, index) => (

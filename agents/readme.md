@@ -269,7 +269,9 @@ cd agents/reasoning-agent && mvn spring-boot:run
 | `reasoning.upstream.locations-agent-base-url` | `http://localhost:8091` | locations-agent |
 | `reasoning.upstream.vessel-agent-base-url` | `http://localhost:8092` | vessel-agent |
 | `reasoning.upstream.places-catalog-url` | `http://localhost:8082/api/v1/places` | Mock catalog for substring mention detection |
-| `reasoning.pipeline.search-radius-km` | `100` | Radius passed to vessel-agent |
+| `reasoning.pipeline.search-radius-km` | `100` | Default vessel search radius (km) when `?radiusKm` is omitted |
+| `reasoning.pipeline.min-radius-km` | `1` | Minimum allowed `radiusKm` query value |
+| `reasoning.pipeline.max-radius-km` | `500` | Maximum allowed `radiusKm` query value |
 | `server.port` | `8093` | reasoning-agent port |
 
 ### HTTP API
@@ -277,12 +279,14 @@ cd agents/reasoning-agent && mvn spring-boot:run
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/agent/reasoning-report` | Full pipeline JSON |
+| `GET` | `/api/agent/reasoning-report?radiusKm=150` | Same, with vessel search radius in km (validated against min/max; forwarded to vessel-agent) |
 
 ```bash
 curl -s "http://localhost:8093/api/agent/reasoning-report" | python3 -m json.tool
+curl -s "http://localhost:8093/api/agent/reasoning-report?radiusKm=200" | python3 -m json.tool
 ```
 
-Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search).
+The response includes **`searchRadiusKm`**: the radius actually used for vessel lookups on that run. Each item in `articles[]` includes `classified` (same fields as news-agent, including **`body`**), `catalogMentions`, `resolvedLocations`, and `vesselsNearLocations` (per distinct coordinate used for a vessel search; each block echoes the same radius in **`radiusKm`**).
 
 ### Web UI (React)
 

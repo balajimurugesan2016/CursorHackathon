@@ -61,6 +61,8 @@ export interface ArticleReasoningDto {
 export interface ReasoningReportResponse {
   articleCount: number;
   articles: ArticleReasoningDto[];
+  /** Radius in km used for vessel-agent searches on this run. */
+  searchRadiusKm: number;
 }
 
 export interface ErrorBody {
