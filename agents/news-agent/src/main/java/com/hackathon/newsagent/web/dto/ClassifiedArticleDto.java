@@ -9,6 +9,7 @@ public record ClassifiedArticleDto(
         String url,
         String date,
         String dateTime,
-        List<CategoryAssignmentDto> categories
+        List<CategoryAssignmentDto> categories,
+        ShippingRouteImpactDto shippingRouteImpact
 ) {
 }

@@ -2,12 +2,14 @@ package com.hackathon.newsagent.service;
 
 import com.hackathon.newsagent.classification.ArticleClassifier;
 import com.hackathon.newsagent.classification.CategoryScore;
+import com.hackathon.newsagent.classification.ShippingRouteImpactScorer;
 import com.hackathon.newsagent.client.NewsApiClient;
 import com.hackathon.newsagent.config.ClassificationProperties;
 import com.hackathon.newsagent.model.news.ArticleJson;
 import com.hackathon.newsagent.web.dto.AgentRunResponse;
 import com.hackathon.newsagent.web.dto.CategoryAssignmentDto;
 import com.hackathon.newsagent.web.dto.ClassifiedArticleDto;
+import com.hackathon.newsagent.web.dto.ShippingRouteImpactDto;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,15 +20,18 @@ public class NewsClassificationService {
 
     private final NewsApiClient newsApiClient;
     private final ArticleClassifier classifier;
+    private final ShippingRouteImpactScorer shippingRouteImpactScorer;
     private final ClassificationProperties classificationProps;
 
     public NewsClassificationService(
             NewsApiClient newsApiClient,
             ArticleClassifier classifier,
+            ShippingRouteImpactScorer shippingRouteImpactScorer,
             ClassificationProperties classificationProps
     ) {
         this.newsApiClient = newsApiClient;
         this.classifier = classifier;
+        this.shippingRouteImpactScorer = shippingRouteImpactScorer;
         this.classificationProps = classificationProps;
     }
 
@@ -51,6 +56,8 @@ public class NewsClassificationService {
                         s.matchedSignals()
                 ));
             }
+            ShippingRouteImpactDto routeImpact =
+                    shippingRouteImpactScorer.score(article.title(), article.body());
             classified.add(new ClassifiedArticleDto(
                     article.uri(),
                     article.title(),
@@ -58,7 +65,8 @@ public class NewsClassificationService {
                     article.url(),
                     article.date(),
                     article.dateTime(),
-                    assignments
+                    assignments,
+                    routeImpact
             ));
         }
         return new AgentRunResponse(articles.size(), classified);
