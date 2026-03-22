@@ -288,6 +288,8 @@ docker compose up --build
 - UI: **http://localhost:3000**
 - Internal **mockservices** has **no** host port; **8090, 8095, 8096, 8097, 8085** are published as in [`docker-compose.yml`](../docker-compose.yml).
 
+**Healthchecks and startup order:** Each service has a Docker healthcheck (mockservices `/api/v1/places`, enterpriseservice `/api/v1/plants`, location-service `/api/location/cities`, ship-mobility-service `/api/ship-mobility`, news-agent and probability-service `/actuator/health`). Compose uses `depends_on: condition: service_healthy` so services start in the correct order—no manual sequencing or race conditions (e.g. `ClosedChannelException` when location-service calls enterpriseservice before it is ready).
+
 ### Run the full stack locally (smoke test)
 
 Use **separate terminals**. Order matters: **mock → enterprise → location-service → ship-mobility → news-agent → probability-service → frontend**.
