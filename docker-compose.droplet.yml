@@ -8,8 +8,10 @@ services:
     ports:
       - "80:8080"
     depends_on:
-      - enterpriseservice
-      - probability-service
+      enterpriseservice:
+        condition: service_healthy
+      probability-service:
+        condition: service_healthy
     environment:
       - PORT=8080
       - API_BACKEND_URL=http://enterpriseservice:8085
@@ -21,63 +23,109 @@ services:
       context: ./agents/location-service
       dockerfile: Dockerfile
     depends_on:
-      - mockservices
-      - enterpriseservice
+      mockservices:
+        condition: service_healthy
+      enterpriseservice:
+        condition: service_healthy
     environment:
       - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
       - MOCK_SERVICES_URL=http://mockservices:8082
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/api/location/cities"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10
 
   ship-mobility-service:
     build:
       context: ./agents/ship-mobility-service
       dockerfile: Dockerfile
     depends_on:
-      - mockservices
-      - enterpriseservice
+      mockservices:
+        condition: service_healthy
+      enterpriseservice:
+        condition: service_healthy
     environment:
       - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
       - MOCK_SERVICES_URL=http://mockservices:8082
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/api/ship-mobility"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10
 
   news-agent:
     build:
       context: ./agents/news-agent
       dockerfile: Dockerfile
     depends_on:
-      - mockservices
-      - location-service
-      - enterpriseservice
+      mockservices:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      enterpriseservice:
+        condition: service_healthy
     environment:
       - MOCK_SERVICES_URL=http://mockservices:8082
       - LOCATION_SERVICE_URL=http://location-service:8095
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10
 
   probability-service:
     build:
       context: ./agents/probability-service
       dockerfile: Dockerfile
     depends_on:
-      - news-agent
-      - ship-mobility-service
+      news-agent:
+        condition: service_healthy
+      ship-mobility-service:
+        condition: service_healthy
     environment:
       - NEWS_AGENT_URL=http://news-agent:8090
       - SHIP_MOBILITY_URL=http://ship-mobility-service:8096
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10
 
   mockservices:
     build:
       context: ./mockServices
       dockerfile: Dockerfile
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/places"]
+      interval: 5s
+      timeout: 3s
+      start_period: 15s
+      retries: 10
 
   enterpriseservice:
     build:
       context: ./enterpriseservice
       dockerfile: Dockerfile
     depends_on:
-      - mockservices
+      mockservices:
+        condition: service_healthy
     environment:
       - MOCK_SERVICES_BASE_URL=http://mockservices:8082
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/api/v1/plants"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 10

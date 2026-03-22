@@ -18,8 +18,13 @@ public class AppConfig {
 	public RestClient enterpriseRestClient(
 			@Value("${ENTERPRISE_SERVICE_URL:http://localhost:8085}") String enterpriseBaseUrl) {
 		String baseUrl = enterpriseBaseUrl.endsWith("/") ? enterpriseBaseUrl.substring(0, enterpriseBaseUrl.length() - 1) : enterpriseBaseUrl;
+		Duration timeout = Duration.ofSeconds(10);
+		HttpClient httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
+		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+		requestFactory.setReadTimeout(timeout);
 		return RestClient.builder()
 				.baseUrl(baseUrl)
+				.requestFactory(requestFactory)
 				.build();
 	}
 
