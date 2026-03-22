@@ -18,6 +18,7 @@ export interface Supplier {
   latitude?: string | null;
   longitude?: string | null;
   contractStatus?: string | null;
+  plants?: Plant[] | null;
 }
 
 /** JSON from enterpriseservice shipments API. */

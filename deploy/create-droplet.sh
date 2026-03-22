@@ -38,10 +38,10 @@ cd /opt/cursorhackathon
 # Create .env
 echo "ANTHROPIC_API_KEY=ANTHROPIC_KEY_PLACEHOLDER" > .env
 
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.droplet.yml build
+docker compose -f docker-compose.droplet.yml up -d
 
-echo "Deployment complete" > /var/log/cursorhackathon-deploy.log
+echo "Deployment complete" >> /var/log/cursorhackathon-deploy.log
 USERDATA
 
 # Substitute placeholders
@@ -73,7 +73,7 @@ echo ""
 IP=$(doctl compute droplet get "$DROPLET_ID" --format PublicIPv4 --no-header)
 echo ""
 echo "Droplet created. IP: $IP"
-echo "Deployment is running in background (takes ~3-5 min). Check: ssh root@$IP 'docker compose -f /opt/cursorhackathon/docker-compose.prod.yml ps'"
+echo "Deployment is running in background (takes ~5-10 min to build). Check: ssh root@$IP 'docker compose -f /opt/cursorhackathon/docker-compose.droplet.yml ps'"
 echo "App URL: http://$IP"
 echo ""
-echo "To set ANTHROPIC_API_KEY after deploy: ssh root@$IP \"echo 'ANTHROPIC_API_KEY=sk-ant-xxx' >> /opt/cursorhackathon/.env && cd /opt/cursorhackathon && docker compose -f docker-compose.prod.yml up -d --force-recreate news-agent\""
+echo "To set ANTHROPIC_API_KEY after deploy: ssh root@$IP \"echo 'ANTHROPIC_API_KEY=sk-ant-xxx' >> /opt/cursorhackathon/.env && cd /opt/cursorhackathon && docker compose -f docker-compose.droplet.yml up -d --force-recreate news-agent\""

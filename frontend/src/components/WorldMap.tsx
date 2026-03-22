@@ -5,10 +5,25 @@ import 'leaflet/dist/leaflet.css';
 import { useAsync } from '../hooks/useAsync';
 import { enterpriseApi } from '../api/client';
 import { parseCoord } from '../util/geo';
+import type { Plant, Supplier } from '../api/types';
 
 const accentIcon = L.divIcon({
   className: 'custom-marker',
   html: '<span style="width:12px;height:12px;border-radius:50%;background:#22D3EE;display:block;border:2px solid #0A0F1C;"></span>',
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
+
+const redPlantIcon = L.divIcon({
+  className: 'custom-marker',
+  html: '<span style="width:12px;height:12px;border-radius:50%;background:#EF4444;display:block;border:2px solid #0A0F1C;"></span>',
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
+
+const orangeSupplierIcon = L.divIcon({
+  className: 'custom-marker',
+  html: '<span style="width:12px;height:12px;border-radius:50%;background:#F59E0B;display:block;border:2px solid #0A0F1C;"></span>',
   iconSize: [12, 12],
   iconAnchor: [6, 6],
 });
@@ -24,19 +39,41 @@ function MapBounds({ points }: { points: { lat: number; lng: number }[] }) {
 }
 
 interface WorldMapProps {
-  title?: string;
+  readonly title?: string;
+  readonly highlightedPlants?: readonly Plant[];
+  readonly matchedSuppliers?: readonly Supplier[];
 }
 
-export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps) {
+export function WorldMap({
+  title = 'PREDICTION SIMULATION MAP',
+  highlightedPlants = [],
+  matchedSuppliers = [],
+}: WorldMapProps) {
   const { data: plants, loading, error } = useAsync(() => enterpriseApi.listPlants(), []);
 
-  const markers =
+  const highlightedPlantIds = new Set(highlightedPlants.map((p) => p.id));
+
+  const plantMarkers =
     plants?.flatMap((p) => {
       const lat = parseCoord(p.latitude);
       const lon = parseCoord(p.longitude);
       if (lat == null || lon == null) return [];
-      return [{ name: p.plantName, lat, lng: lon }];
+      const isHighlighted = highlightedPlantIds.has(p.id);
+      return [{ name: p.plantName, lat, lng: lon, id: p.id, isHighlighted }];
     }) ?? [];
+
+  const supplierMarkers =
+    matchedSuppliers?.flatMap((s) => {
+      const lat = parseCoord(s.latitude);
+      const lon = parseCoord(s.longitude);
+      if (lat == null || lon == null) return [];
+      return [{ name: s.supplierName, lat, lng: lon }];
+    }) ?? [];
+
+  const allPoints = [
+    ...plantMarkers.map((m) => ({ lat: m.lat, lng: m.lng })),
+    ...supplierMarkers.map((m) => ({ lat: m.lat, lng: m.lng })),
+  ];
 
   return (
     <div
@@ -70,7 +107,47 @@ export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps)
         >
           {title}
         </span>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#EF4444',
+              }}
+            />
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Plants (at-risk)
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#F59E0B',
+              }}
+            />
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Suppliers (at-risk)
+            </span>
+          </div>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <span
               style={{
@@ -107,7 +184,7 @@ export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps)
           minHeight: 300,
         }}
       >
-        {loading && markers.length === 0 && !error && (
+        {loading && plantMarkers.length === 0 && !error && (
           <div style={{ padding: 16, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             Loading map…
           </div>
@@ -123,9 +200,13 @@ export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps)
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
-          <MapBounds points={markers.map((m) => ({ lat: m.lat, lng: m.lng }))} />
-          {markers.map((p) => (
-            <Marker key={p.name} position={[p.lat, p.lng]} icon={accentIcon}>
+          <MapBounds points={allPoints} />
+          {plantMarkers.map((p) => (
+            <Marker
+              key={`plant-${p.id}`}
+              position={[p.lat, p.lng]}
+              icon={p.isHighlighted ? redPlantIcon : accentIcon}
+            >
               <Popup>
                 <div
                   style={{
@@ -134,7 +215,22 @@ export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps)
                     color: 'var(--text-primary)',
                   }}
                 >
-                  <strong>{p.name}</strong> — Plant
+                  <strong>{p.name}</strong> — Plant{p.isHighlighted ? ' (at-risk)' : ''}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+          {supplierMarkers.map((s) => (
+            <Marker key={`supplier-${s.name}`} position={[s.lat, s.lng]} icon={orangeSupplierIcon}>
+              <Popup>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <strong>{s.name}</strong> — Supplier (at-risk)
                 </div>
               </Popup>
             </Marker>
@@ -171,7 +267,7 @@ export function WorldMap({ title = 'PREDICTION SIMULATION MAP' }: WorldMapProps)
             color: 'var(--text-muted)',
           }}
         >
-          {markers.length} with coordinates on map
+          {plantMarkers.length} plants + {supplierMarkers.length} suppliers on map
         </span>
       </div>
     </div>

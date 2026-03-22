@@ -1,0 +1,83 @@
+# Build from source on droplet (amd64) - no pre-built images needed
+# Only frontend exposed to the world
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:8080"
+    depends_on:
+      - enterpriseservice
+      - probability-service
+    environment:
+      - PORT=8080
+      - API_BACKEND_URL=http://enterpriseservice:8085
+      - PROBABILITY_SERVICE_URL=http://probability-service:8097
+    restart: unless-stopped
+
+  location-service:
+    build:
+      context: ./agents/location-service
+      dockerfile: Dockerfile
+    depends_on:
+      - mockservices
+      - enterpriseservice
+    environment:
+      - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
+      - MOCK_SERVICES_URL=http://mockservices:8082
+    restart: unless-stopped
+
+  ship-mobility-service:
+    build:
+      context: ./agents/ship-mobility-service
+      dockerfile: Dockerfile
+    depends_on:
+      - mockservices
+      - enterpriseservice
+    environment:
+      - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
+      - MOCK_SERVICES_URL=http://mockservices:8082
+    restart: unless-stopped
+
+  news-agent:
+    build:
+      context: ./agents/news-agent
+      dockerfile: Dockerfile
+    depends_on:
+      - mockservices
+      - location-service
+      - enterpriseservice
+    environment:
+      - MOCK_SERVICES_URL=http://mockservices:8082
+      - LOCATION_SERVICE_URL=http://location-service:8095
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+
+  probability-service:
+    build:
+      context: ./agents/probability-service
+      dockerfile: Dockerfile
+    depends_on:
+      - news-agent
+      - ship-mobility-service
+    environment:
+      - NEWS_AGENT_URL=http://news-agent:8090
+      - SHIP_MOBILITY_URL=http://ship-mobility-service:8096
+    restart: unless-stopped
+
+  mockservices:
+    build:
+      context: ./mockServices
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+  enterpriseservice:
+    build:
+      context: ./enterpriseservice
+      dockerfile: Dockerfile
+    depends_on:
+      - mockservices
+    environment:
+      - MOCK_SERVICES_BASE_URL=http://mockservices:8082
+    restart: unless-stopped

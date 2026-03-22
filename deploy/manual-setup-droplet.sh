@@ -33,9 +33,9 @@ cd "$APP_DIR"
 echo "==> Creating .env..."
 echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}" > .env
 
-echo "==> Pulling images and starting..."
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+echo "==> Building from source and starting (takes 5-10 min)..."
+docker compose -f docker-compose.droplet.yml build
+docker compose -f docker-compose.droplet.yml up -d
 
 echo "==> Done! App: http://$(curl -s ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.droplet.yml ps

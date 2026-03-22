@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { useProbabilityWebSocket } from '../hooks/useProbabilityWebSocket';
+import { useMatchedSupplyChain } from '../hooks/useMatchedSupplyChain';
 import { enterpriseApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
@@ -21,8 +22,17 @@ export function PredictionsSimulation() {
     () => enterpriseApi.listPlants(),
     []
   );
+  const { data: suppliers, error: suppliersError } = useAsync(
+    () => enterpriseApi.listSuppliers(),
+    []
+  );
   const { data: probability, loading: loadingProbability, error: probabilityError } = useProbabilityWebSocket();
-  const error = plantsError ?? probabilityError;
+  const { matchedSuppliers, plantsAtRisk } = useMatchedSupplyChain(
+    probability,
+    suppliers ?? null,
+    enterprisePlants ?? null
+  );
+  const error = plantsError ?? suppliersError ?? probabilityError;
   const enterprisePlantTotal = enterprisePlants?.length ?? 0;
 
   const probabilityCards = useMemo(() => {
@@ -191,44 +201,11 @@ export function PredictionsSimulation() {
             minHeight: 0,
           }}
         >
-          <WorldMap title="PLANT MAP (ENTERPRISE)" />
-
-          <div
-            style={{
-              width: 340,
-              minWidth: 340,
-              background: 'var(--bg-card)',
-              borderRadius: 4,
-              padding: 24,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 2,
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              DATA SOURCES
-            </span>
-            <p
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 13,
-                color: 'var(--text-secondary)',
-                margin: 0,
-                lineHeight: 1.5,
-              }}
-            >
-              Event probability cards come from <strong>probability-service</strong> (news-agent + ship-mobility).
-              The plant map uses <strong>enterpriseservice</strong> (port 8085).
-            </p>
-          </div>
+          <WorldMap
+            title="RISK REGION"
+            highlightedPlants={plantsAtRisk}
+            matchedSuppliers={matchedSuppliers}
+          />
         </div>
       </div>
     </Layout>
