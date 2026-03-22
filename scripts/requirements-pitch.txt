@@ -1,0 +1,2 @@
+# pip install -r scripts/requirements-pitch.txt
+python-pptx>=1.0.2

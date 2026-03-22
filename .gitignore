@@ -37,6 +37,9 @@ application-local.properties
 application-local.yml
 *.log
 
+# Pitch deck generator (local venv)
+.venv-pitch/
+
 # SAP MTA
 mta_archives/
 *.mtar
