@@ -1,0 +1,68 @@
+# Production: pull from Docker Hub, only frontend exposed
+services:
+  frontend:
+    image: balajimurugesan2016/frontend:latest
+    ports:
+      - "80:8080"
+    depends_on:
+      - enterpriseservice
+      - probability-service
+    environment:
+      - PORT=8080
+      - API_BACKEND_URL=http://enterpriseservice:8085
+      - PROBABILITY_SERVICE_URL=http://probability-service:8097
+    restart: unless-stopped
+
+  location-service:
+    image: balajimurugesan2016/location-service:latest
+    depends_on:
+      - mockservices
+      - enterpriseservice
+    environment:
+      - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
+      - MOCK_SERVICES_URL=http://mockservices:8082
+    restart: unless-stopped
+
+  ship-mobility-service:
+    image: balajimurugesan2016/ship-mobility-service:latest
+    depends_on:
+      - mockservices
+      - enterpriseservice
+    environment:
+      - ENTERPRISE_SERVICE_URL=http://enterpriseservice:8085
+      - MOCK_SERVICES_URL=http://mockservices:8082
+    restart: unless-stopped
+
+  news-agent:
+    image: balajimurugesan2016/news-agent:latest
+    depends_on:
+      - mockservices
+      - location-service
+      - enterpriseservice
+    environment:
+      - MOCK_SERVICES_URL=http://mockservices:8082
+      - LOCATION_SERVICE_URL=http://location-service:8095
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+
+  probability-service:
+    image: balajimurugesan2016/probability-service:latest
+    depends_on:
+      - news-agent
+      - ship-mobility-service
+    environment:
+      - NEWS_AGENT_URL=http://news-agent:8090
+      - SHIP_MOBILITY_URL=http://ship-mobility-service:8096
+    restart: unless-stopped
+
+  mockservices:
+    image: balajimurugesan2016/mock-services:latest
+    restart: unless-stopped
+
+  enterpriseservice:
+    image: balajimurugesan2016/enterpriseservice:latest
+    depends_on:
+      - mockservices
+    environment:
+      - MOCK_SERVICES_BASE_URL=http://mockservices:8082
+    restart: unless-stopped

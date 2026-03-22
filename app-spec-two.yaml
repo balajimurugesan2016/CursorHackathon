@@ -1,0 +1,29 @@
+name: cursorhackathon-app
+region: fra
+services:
+  - name: frontend
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: frontend
+      tag: latest
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: API_BACKEND_URL
+        value: "http://enterpriseservice:8085"
+      - key: PROBABILITY_SERVICE_URL
+        value: "http://probability-service:8097"
+  - name: enterpriseservice
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: enterpriseservice
+      tag: latest
+    http_port: 8085
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: MOCK_SERVICES_BASE_URL
+        value: "http://mock-services:8082"

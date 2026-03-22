@@ -1,0 +1,120 @@
+name: cursorhackathon-app
+
+region: fra
+ingress:
+  rules:
+    - component:
+        name: frontend
+      match:
+        path:
+          prefix: /
+
+services:
+  # Frontend - public facing, proxies to backend services
+  - name: frontend
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: frontend
+      tag: latest
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: API_BACKEND_URL
+        value: "http://enterpriseservice:8085"
+      - key: PROBABILITY_SERVICE_URL
+        value: "http://probability-service:8097"
+
+  # Backend API
+  - name: enterpriseservice
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: enterpriseservice
+      tag: latest
+    http_port: 8085
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: MOCK_SERVICES_BASE_URL
+        value: "http://mock-services:8082"
+
+  # Probability service
+  - name: probability-service
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: probability-service
+      tag: latest
+    http_port: 8097
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: NEWS_AGENT_URL
+        value: "http://news-agent:8090"
+      - key: SHIP_MOBILITY_URL
+        value: "http://ship-mobility-service:8096"
+
+  # Location service
+  - name: location-service
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: location-service
+      tag: latest
+    http_port: 8095
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: ENTERPRISE_SERVICE_URL
+        value: "http://enterpriseservice:8085"
+      - key: MOCK_SERVICES_URL
+        value: "http://mock-services:8082"
+
+  # Ship mobility service
+  - name: ship-mobility-service
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: ship-mobility-service
+      tag: latest
+    http_port: 8096
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: ENTERPRISE_SERVICE_URL
+        value: "http://enterpriseservice:8085"
+      - key: MOCK_SERVICES_URL
+        value: "http://mock-services:8082"
+
+  # News agent
+  - name: news-agent
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: news-agent
+      tag: latest
+    http_port: 8090
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: MOCK_SERVICES_URL
+        value: "http://mock-services:8082"
+      - key: LOCATION_SERVICE_URL
+        value: "http://location-service:8095"
+      - key: ANTHROPIC_API_KEY
+        type: SECRET
+        value: ""
+        scope: RUN_TIME
+
+  # Mock services
+  - name: mock-services
+    image:
+      registry_type: DOCKER_HUB
+      registry: balajimurugesan2016
+      repository: mock-services
+      tag: latest
+    http_port: 8082
+    instance_count: 1
+    instance_size_slug: basic-xxs
