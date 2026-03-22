@@ -2,7 +2,7 @@
 
 ## Architecture
 
-High-level view of how the **CursorHackathon** stack fits together: shared mock APIs, **enterpriseservice** master data, four Spring Boot **agents** under `agents/`, and the React **`frontend/`** (Vite). The browser talks to **enterpriseservice** for `/api/v1/*` and to **probability-service** for REST + WebSocket push. Ports below are **local defaults**; see [Port map](#port-map-local-defaults) and [`docker-compose.yml`](../docker-compose.yml).
+High-level view of how the **CursorHackathon** stack fits together: shared mock APIs, **[`enterpriseservice`](../enterpriseservice)** (Spring Boot, repo root folder — not under `agents/`), four Spring Boot **agents** under `agents/`, and the React **`frontend/`** (Vite). The browser talks to **enterpriseservice** for `/api/v1/*` and to **probability-service** for REST + WebSocket push. Ports below are **local defaults**; see [Port map](#port-map-local-defaults) and [`docker-compose.yml`](../docker-compose.yml).
 
 ```mermaid
 flowchart TB
@@ -18,11 +18,11 @@ flowchart TB
     M["Articles, places, vessels\n(shared mock HTTP APIs)"]
   end
 
-  subgraph Ent["enterpriseservice — :8085"]
-    E["Plants, suppliers, shipments\n(orchestration → mock)"]
+  subgraph Ent["enterpriseservice — :8085 (Spring Boot)"]
+    E["Plants, suppliers, shipments\n(Spring Boot — orchestration → mock)"]
   end
 
-  subgraph Agents["Spring Boot agents (this folder)"]
+  subgraph Agents["Spring Boot agents in agents folder"]
     N["news-agent — :8090"]
     L["location-service — :8095"]
     V["ship-mobility-service — :8096"]
@@ -60,6 +60,7 @@ classDiagram
 
   class EnterpriseService {
     <<component>>
+    Spring Boot app
     port 8085
     master data + orchestration
   }
@@ -230,8 +231,6 @@ This folder holds **Spring Boot agents** that integrate with [`../mockServices`]
 ```bash
 python3 mockServices/scripts/generate_mock_data.py
 ```
-
-**Articles API:** `POST /api/v1/article/getArticles` can return the same schema as `mock_articles.json` with **time-varying** fields when [`MockArticlesDynamicService`](../mockServices/src/main/java/com/mockservice/service/MockArticlesDynamicService.java) is enabled in mockServices (demo-friendly drift).
 
 | Service | Port | Package | Role |
 |---------|------|---------|------|
