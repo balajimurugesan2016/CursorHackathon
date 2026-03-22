@@ -128,19 +128,19 @@ sequenceDiagram
   participant ENT as enterpriseservice
   participant MOCK as mockServices
 
-  Note over PROB: @Scheduled produce() calls ProbabilityService; result queued; background consumer STOMP-send to /topic/probability (see WebSocketConfig /ws + SockJS)
+  Note over PROB: Scheduled produce calls ProbabilityService, queues result, consumer STOMP-sends to /topic/probability (WebSocketConfig /ws SockJS)
 
   PROB->>NA: GET /api/agent/classified-news
 
   rect rgb(245, 245, 252)
-    Note over NA,MOCK: news-agent: mock articles + city list for classification context
+    Note over NA,MOCK: news-agent fetches mock articles and city list for classification context
     NA->>MOCK: POST /api/v1/article/getArticles
     MOCK-->>NA: articles JSON
 
     NA->>LS: GET /api/location/cities
 
     rect rgb(252, 248, 240)
-      Note over LS,MOCK: location-service builds summary; /cities returns sorted unique city names only
+      Note over LS,MOCK: location-service builds summary, /cities returns sorted unique city names only
       par LocationAggregationService parallel calls (virtual threads)
         LS->>ENT: GET /api/v1/plants
         ENT-->>LS: PlantDto[]
@@ -152,7 +152,7 @@ sequenceDiagram
         ENT-->>LS: ShipmentDto[]
       end
 
-      Note over LS: Add cities from plant.location and supplier.location strings
+      Note over LS: Add cities from plant and supplier location strings
 
       loop each non-DELIVERED shipment (shipNumber)
         LS->>MOCK: GET /api/v1/vessels/by-names?names=...
@@ -160,8 +160,8 @@ sequenceDiagram
       end
 
       loop each vessel with parseable lat/lon
-        LS->>MOCK: POST /api/vessels_operations/get-places?latitude=&longitude=
-        MOCK-->>LS: places; keep names where type == CITY
+        LS->>MOCK: POST get-places with lat and lon query params
+        MOCK-->>LS: places, filter names where type is CITY
       end
 
       Note over LS: Sort and dedupe city list
@@ -169,14 +169,14 @@ sequenceDiagram
 
     LS-->>NA: JSON array of city strings
 
-    Note over NA: LangChain4j + Claude Haiku: classify each article; topics + AI-extracted locations
+    Note over NA: LangChain4j and Claude Haiku classify each article (topics and AI-extracted locations)
     NA-->>PROB: 200 ClassifiedNewsResponse
   end
 
   PROB->>SM: GET /api/ship-mobility
 
   rect rgb(240, 250, 248)
-    Note over SM,MOCK: ship-mobility-service: fleet rows + place names near each vessel
+    Note over SM,MOCK: ship-mobility-service — fleet rows and place names near each vessel
     SM->>ENT: GET /api/v1/shipments
     ENT-->>SM: ShipmentDto[]
 
@@ -187,20 +187,20 @@ sequenceDiagram
       MOCK-->>SM: VesselDto[]
 
       loop each vessel with parseable lat/lon
-        SM->>MOCK: POST /api/vessels_operations/get-vessels-by-area?latitude=&longitude=&circle_radius= (km, from config)
-        MOCK-->>SM: VesselDto[] in radius (side effect / context for mock)
+        SM->>MOCK: POST get-vessels-by-area lat lon circle_radius km from config
+        MOCK-->>SM: VesselDto[] in radius (side effect for mock)
 
-        SM->>MOCK: POST /api/vessels_operations/get-places?latitude=&longitude=&circle_radius= (km)
-        MOCK-->>SM: PlaceDto[] → names for ShipMobilityItem.cities
+        SM->>MOCK: POST get-places lat lon circle_radius km
+        MOCK-->>SM: PlaceDto[] names for ShipMobilityItem cities
       end
 
       SM-->>PROB: ShipMobilityResponse (ships + global city list)
     end
   end
 
-  Note over PROB: ProbabilityService — match article locations to ship cities + speed weights; apply Gulf floor; build ProbabilityResponse
+  Note over PROB: ProbabilityService matches article locations to ship cities and speed weights, applies Gulf floor, builds ProbabilityResponse
 
-  Note over PROB: ProbabilityPushService — latest.set, queue.offer, consumer convertAndSend /topic/probability
+  Note over PROB: ProbabilityPushService stores latest, offers to queue, convertAndSend to /topic/probability
 
   PROB-->>UI: STOMP broadcast to subscribers (topic /topic/probability, endpoint /ws)
 
