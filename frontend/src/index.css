@@ -74,7 +74,8 @@ body {
 .leaflet-container a.leaflet-popup-close-button:hover {
   color: var(--text-primary);
 }
-.custom-marker {
+.custom-marker,
+.supply-network-marker {
   background: transparent !important;
   border: none !important;
 }
