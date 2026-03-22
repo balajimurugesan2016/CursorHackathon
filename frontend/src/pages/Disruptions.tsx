@@ -1,92 +1,25 @@
 import { Filter, FileDown } from 'lucide-react';
-import { useMemo } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { enterpriseApi, SIMULATION_REPORT_POLL_MS, simulationApi } from '../api/client';
-import type { PlantSupplyRiskDto, SupplyChainRiskReportResponse } from '../api/types';
+import { enterpriseApi } from '../api/client';
 import { Layout } from '../components/Layout';
 import { HeaderBar } from '../components/HeaderBar';
 import { KPICard } from '../components/KPICard';
 import { SeverityBreakdown } from '../components/SeverityBreakdown';
 import { RecentActivity } from '../components/RecentActivity';
 
-function labelSeverity(score: number): 'Critical' | 'High' | 'Medium' | 'Low' {
-  if (score >= 0.5) return 'Critical';
-  if (score >= 0.2) return 'High';
-  if (score >= 0.05) return 'Medium';
-  return 'Low';
-}
-
-function severityStyle(s: 'Critical' | 'High' | 'Medium' | 'Low') {
-  const map = {
-    Critical: 'var(--error)',
-    High: 'var(--warning)',
-    Medium: 'var(--success)',
-    Low: 'var(--text-tertiary)',
-  };
-  return map[s];
-}
-
-function bucketPlants(plants: PlantSupplyRiskDto[]) {
-  let critical = 0;
-  let high = 0;
-  let medium = 0;
-  for (const p of plants) {
-    const x = Math.max(p.plantRiskScore, p.disturbanceCertainty);
-    if (x >= 0.5) critical++;
-    else if (x >= 0.2) high++;
-    else if (x > 0.05) medium++;
-  }
-  return { critical, high, medium };
-}
-
-/** Article titles surfaced by the simulation agent (from supplier exposure analysis). */
-function articleSignalsFromSimulation(risk: SupplyChainRiskReportResponse | null) {
-  const titles = new Set<string>();
-  for (const p of risk?.plants ?? []) {
-    for (const s of p.suppliers ?? []) {
-      for (const t of s.contributingArticleTitles ?? []) {
-        if (t?.trim()) titles.add(t.trim());
-      }
-    }
-  }
-  return [...titles].slice(0, 8).map((text) => ({
-    color: 'var(--accent)' as const,
-    text,
-    time: 'from simulation report',
-  }));
-}
-
 export function Disruptions() {
   const { data: enterprisePlants, loading: loadingPlants, error: plantsError } = useAsync(
     () => enterpriseApi.listPlants(),
     []
   );
-  const { data: risk, loading: loadingRisk, error: riskError } = useAsync(
-    () => simulationApi.supplyChainRiskReport(),
-    [],
-    { pollIntervalMs: SIMULATION_REPORT_POLL_MS }
-  );
 
-  const loading = loadingPlants || (loadingRisk && risk == null);
-  const error = plantsError ?? riskError;
   const enterprisePlantTotal = enterprisePlants?.length ?? 0;
-  const plants = risk?.plants ?? [];
-  const { critical, high, medium } = bucketPlants(plants);
-  const activeSignals = plants.filter(
-    (p) => p.plantRiskScore > 0.001 || p.disturbanceCertainty > 0.001
-  ).length;
-
-  const rows = useMemo(() => {
-    return [...plants].sort((a, b) => b.plantRiskScore - a.plantRiskScore);
-  }, [plants]);
-
-  const recentItems = useMemo(() => articleSignalsFromSimulation(risk ?? null), [risk]);
 
   return (
     <Layout>
       <HeaderBar
         title="DISRUPTIONS"
-        subtitle="Simulation agent (supply-chain-risk) + enterprise-backed plants/suppliers"
+        subtitle="Enterprise plants and suppliers"
         showLive={false}
         rightContent={
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -143,9 +76,9 @@ export function Disruptions() {
           overflow: 'auto',
         }}
       >
-        {error && (
+        {plantsError && (
           <div style={{ padding: 12, color: 'var(--error)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-            {error}
+            {plantsError}
           </div>
         )}
         <div
@@ -157,30 +90,10 @@ export function Disruptions() {
         >
           <KPICard
             label="TOTAL PLANTS (ENTERPRISE)"
-            value={loading ? '…' : enterprisePlantTotal}
+            value={loadingPlants ? '…' : enterprisePlantTotal}
             valueColor="primary"
             subtext="GET /api/v1/plants"
             subtextColor="primary"
-          />
-          <KPICard
-            label="PLANTS IN SIMULATION REPORT"
-            value={loading ? '…' : risk?.plantCount ?? 0}
-            valueColor="primary"
-          />
-          <KPICard
-            label="ACTIVE SIGNALS"
-            value={loading ? '…' : activeSignals}
-            valueColor={activeSignals > 0 ? 'error' : 'success'}
-          />
-          <KPICard
-            label="PORTFOLIO RISK"
-            value={loading ? '…' : (risk?.portfolioRiskScore ?? 0).toFixed(3)}
-            valueColor="primary"
-          />
-          <KPICard
-            label="REASONING ARTICLES (VIA SIMULATION)"
-            value={loading ? '…' : risk?.reasoningArticleCount ?? 0}
-            valueColor="info"
           />
         </div>
 
@@ -221,11 +134,11 @@ export function Disruptions() {
                   color: 'var(--text-tertiary)',
                 }}
               >
-                PLANT RISK LOG
+                PLANT LIST
               </span>
               <div
                 style={{
-                  background: 'var(--error-dim)',
+                  background: 'var(--accent-dim)',
                   borderRadius: 4,
                   padding: '2px 8px',
                 }}
@@ -235,10 +148,10 @@ export function Disruptions() {
                     fontFamily: 'var(--font-mono)',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: 'var(--error)',
+                    color: 'var(--accent)',
                   }}
                 >
-                  {loading ? '…' : rows.length} rows
+                  {loadingPlants ? '…' : enterprisePlants?.length ?? 0} plants
                 </span>
               </div>
             </div>
@@ -279,121 +192,34 @@ export function Disruptions() {
                         borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      SEVERITY
-                    </th>
-                    <th
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'left',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: 1.5,
-                        color: 'var(--text-tertiary)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      RISK
-                    </th>
-                    <th
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'left',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: 1.5,
-                        color: 'var(--text-tertiary)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      DISTURBANCE
-                    </th>
-                    <th
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'right',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: 1.5,
-                        color: 'var(--text-tertiary)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      HRS TO IMPACT
+                      LOCATION
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => {
-                    const score = Math.max(row.plantRiskScore, row.disturbanceCertainty);
-                    const sev = labelSeverity(score);
-                    return (
-                      <tr
-                        key={row.plantId ?? row.plantName}
-                        style={{ borderBottom: '1px solid var(--border)' }}
+                  {(enterprisePlants ?? []).map((p) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600,
+                        }}
                       >
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            color: 'var(--text-primary)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {row.plantName}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: 10,
-                              fontWeight: 600,
-                              background: `${severityStyle(sev)}20`,
-                              color: severityStyle(sev),
-                            }}
-                          >
-                            {sev}
-                          </span>
-                        </td>
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 11,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {(row.plantRiskScore * 100).toFixed(1)}%
-                        </td>
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 11,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {(row.disturbanceCertainty * 100).toFixed(1)}%
-                        </td>
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            textAlign: 'right',
-                            color: 'var(--text-secondary)',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 11,
-                          }}
-                        >
-                          {row.estimatedHoursToImpact != null
-                            ? row.estimatedHoursToImpact.toFixed(0)
-                            : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        {p.plantName}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px 16px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {p.location ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -408,8 +234,8 @@ export function Disruptions() {
               gap: 16,
             }}
           >
-            <SeverityBreakdown critical={critical} high={high} medium={medium} />
-            <RecentActivity items={recentItems} />
+            <SeverityBreakdown critical={0} high={0} medium={0} />
+            <RecentActivity items={[]} />
           </div>
         </div>
       </div>

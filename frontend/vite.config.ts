@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-// Proxies: UI talks only to enterpriseservice (8085) + simulation agent / supply-chain-risk (8094).
+// Proxies: UI talks to enterpriseservice (8085) and probability-service (8097).
 // Longer paths must be listed first (Vite matches in order).
 export default defineConfig({
   plugins: [react()],
@@ -15,10 +15,6 @@ export default defineConfig({
       },
       '/api/probability': {
         target: 'http://localhost:8097',
-        changeOrigin: true,
-      },
-      '/api/agent/supply-chain-risk-report': {
-        target: 'http://localhost:8094',
         changeOrigin: true,
       },
       '/api/v1': {

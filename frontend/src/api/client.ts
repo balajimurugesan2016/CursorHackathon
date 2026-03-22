@@ -1,4 +1,4 @@
-import type { Plant, Supplier, Shipment, SupplyChainRiskReportResponse, ProbabilityResponse } from './types';
+import type { Plant, Supplier, Shipment, ProbabilityResponse } from './types';
 
 async function json<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -22,15 +22,4 @@ export const enterpriseApi = {
  */
 export const probabilityApi = {
   getProbabilities: () => json<ProbabilityResponse>('/api/probability'),
-};
-
-/**
- * Simulation / portfolio analytics — supply-chain-risk-agent (:8094).
- * Composes enterprise + upstream reasoning internally; the UI does not call reasoning-agent directly.
- */
-export const SIMULATION_REPORT_POLL_MS = 2000;
-
-export const simulationApi = {
-  supplyChainRiskReport: () =>
-    json<SupplyChainRiskReportResponse>('/api/agent/supply-chain-risk-report'),
 };
